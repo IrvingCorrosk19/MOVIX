@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  movix-api:
+    image: movix-api
+    build:
+      context: .
+      dockerfile: src/Movix.Api/Dockerfile
+    container_name: movix-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=movix_core;Username=movix;Password=movix_secret;Include Error Detail=true
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__SecretKey=MovixProductionSecretKeyMin32CharactersRequired
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - movix-net
+
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: movix-postgres
+    environment:
+      POSTGRES_USER: movix
+      POSTGRES_PASSWORD: movix_secret
+      POSTGRES_DB: movix_core
+    ports:
+      - "5432:5432"
+    volumes:
+      - movix_pgdata:/var/lib/postgresql/data
+    networks:
+      - movix-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U movix -d movix_core"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: movix-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - movix_redis:/data
+    networks:
+      - movix-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  movix-net:
+    driver: bridge
+
+volumes:
+  movix_pgdata:
+  movix_redis:
