@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IDriverLocationRepository, DriverLocationRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IAdminTripRepository, AdminTripRepository>();
+        services.AddScoped<DataSeeder>();
 
         return services;
     }

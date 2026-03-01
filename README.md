@@ -70,6 +70,17 @@ dotnet run
 
 La API escuchará en el puerto configurado (por defecto según `launchSettings.json` o `ASPNETCORE_URLS`).
 
+## Aplicar migraciones en Docker
+
+Con el stack levantado (`docker-compose up -d`), las migraciones se aplican al iniciar la API. Para aplicarlas manualmente desde el host (BD en localhost:5432):
+
+```bash
+cd src/Movix.Api
+dotnet ef database update --project ../Movix.Infrastructure/Movix.Infrastructure.csproj --context MovixDbContext
+```
+
+Con la API en Docker y Postgres en Docker, la API ya ejecuta `MigrateAsync()` al arrancar, por lo que AddSpatialIndexes y el resto se aplican solas.
+
 ## Crear migraciones EF Core
 
 Desde la raíz del repositorio:
@@ -87,6 +98,34 @@ dotnet ef migrations add NombreMigracion --project ../Movix.Infrastructure/Movix
 - `Jwt__Issuer`, `Jwt__Audience`: emisor y audiencia del token (opcional).
 - `ASPNETCORE_ENVIRONMENT`: `Development` o `Production`.
 - `ASPNETCORE_URLS`: URLs de escucha (ej. `http://+:8080`).
+
+## Seed (solo Development)
+
+Con `ASPNETCORE_ENVIRONMENT=Development`, al arrancar la API se ejecuta un seed mínimo. No se guardan contraseñas en el repositorio; se usan variables de entorno.
+
+**Requeridas para usuario Admin inicial:**
+
+- `ADMIN_EMAIL`: email del usuario Admin.
+- `ADMIN_PASSWORD`: contraseña del usuario Admin.
+
+**Opcionales para driver + vehicle de ejemplo:**
+
+- `DRIVER_EMAIL`: email del usuario conductor.
+- `DRIVER_PASSWORD`: contraseña del usuario conductor.
+
+Ejemplo (PowerShell):
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+$env:ADMIN_EMAIL = "admin@movix.local"
+$env:ADMIN_PASSWORD = "TuPasswordSeguro"
+# Opcional:
+$env:DRIVER_EMAIL = "driver@movix.local"
+$env:DRIVER_PASSWORD = "TuPasswordSeguro"
+cd src/Movix.Api; dotnet run
+```
+
+Los roles (Passenger, Driver, Admin, Support) son valores del enum en dominio; no se insertan en BD. El seed solo crea usuarios (Admin y opcionalmente Driver) y, si aplica, un vehículo de ejemplo para el driver.
 
 ## Endpoints principales
 

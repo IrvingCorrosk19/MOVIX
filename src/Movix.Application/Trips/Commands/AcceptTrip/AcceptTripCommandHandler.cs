@@ -1,4 +1,5 @@
 using MediatR;
+using Movix.Application.Common.Exceptions;
 using Movix.Application.Common.Interfaces;
 using Movix.Application.Common.Models;
 using Movix.Application.Drivers;
@@ -73,7 +74,15 @@ public class AcceptTripCommandHandler : IRequestHandler<AcceptTripCommand, Resul
             UpdatedBy = userId.ToString()
         });
 
-        await _uow.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyException)
+        {
+            return Result<TripDto>.Failure("Concurrent modification", "CONFLICT");
+        }
+
         return Result<TripDto>.Success(new TripDto(
             trip.Id,
             trip.Status.ToString(),

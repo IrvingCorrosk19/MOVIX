@@ -13,6 +13,8 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
         b.Property(x => x.Type).HasMaxLength(200).IsRequired();
         b.Property(x => x.Payload).IsRequired();
         b.Property(x => x.Error).HasMaxLength(2000);
+        b.Property(x => x.AttemptCount).HasDefaultValue(0);
+        b.Property(x => x.LastAttemptUtc);
         b.HasIndex(x => x.ProcessedAtUtc);
     }
 }

@@ -22,9 +22,11 @@ bld/
 .idea/
 *.sln.iml
 
-# User secrets
+# User secrets / local DB (no commitear credenciales)
 appsettings.*.local.json
+appsettings.Development.local.json
 secrets.json
+connection.local.json
 
 # NuGet
 *.nupkg

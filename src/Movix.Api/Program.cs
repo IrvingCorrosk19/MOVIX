@@ -11,6 +11,7 @@ using Movix.Application;
 using Movix.Application.Common.Interfaces;
 using Movix.Infrastructure;
 using Movix.Infrastructure.Auth;
+using Movix.Infrastructure.Messaging;
 using Movix.Infrastructure.Persistence;
 using Serilog;
 using OpenTelemetry.Metrics;
@@ -18,6 +19,7 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Development.local.json", optional: true, reloadOnChange: true);
 
 builder.Host.UseSerilog((ctx, lc) =>
 {
@@ -29,12 +31,16 @@ builder.Host.UseSerilog((ctx, lc) =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IEventPublisher, LoggingEventPublisher>();
+builder.Services.AddHostedService<OutboxProcessor>();
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var jwtSection = builder.Configuration.GetSection(JwtSettings.SectionName);
-var secret = jwtSection["SecretKey"] ?? builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt:SecretKey not set");
+var secret = builder.Configuration["Jwt:SecretKey"];
+if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32 || secret.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("JWT SecretKey must be provided via environment variable and be at least 32 characters.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -131,6 +137,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MovixDbContext>();
     await db.Database.MigrateAsync();
+    var seeder = scope.ServiceProvider.GetRequiredService<Movix.Infrastructure.Persistence.DataSeeder>();
+    await seeder.SeedAsync(db, app.Environment.EnvironmentName);
 }
 
 app.Run();
+
+public partial class Program { }

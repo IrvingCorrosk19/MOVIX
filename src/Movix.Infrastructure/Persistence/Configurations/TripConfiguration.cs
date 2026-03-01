@@ -25,5 +25,7 @@ public class TripConfiguration : IEntityTypeConfiguration<Trip>
         b.HasIndex(x => x.DriverId);
         b.HasIndex(x => x.Status);
         b.HasIndex(x => x.CreatedAtUtc);
+        b.HasIndex(x => x.PickupLocation).HasMethod("GIST");
+        b.HasIndex(x => x.DropoffLocation).HasMethod("GIST");
     }
 }

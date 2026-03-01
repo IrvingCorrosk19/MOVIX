@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Movix.Application.Auth;
@@ -28,18 +29,68 @@ public class AuthService : IAuthService
         _audience = _jwtSettings.Audience ?? "movix";
     }
 
+    public async Task<Result> RegisterAsync(string email, string password, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        // Anti-enumeration: never reveal whether the email already exists
+        var exists = await _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
+        if (exists)
+            return Result.Success();
+
+        var userId = Guid.NewGuid();
+
+        var user = new User
+        {
+            Id = userId,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            Role = Role.Passenger,
+            IsActive = true,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+            RowVersion = Array.Empty<byte>()
+        };
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            userId,
+            email,
+            role = Role.Passenger.ToString(),
+            occurredAtUtc = now
+        });
+
+        var outbox = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Type = "UserRegistered",
+            Payload = payload,
+            CreatedAtUtc = now
+        };
+
+        _db.Users.Add(user);
+        _db.OutboxMessages.Add(outbox);
+        await _db.SaveChangesAsync(cancellationToken); // Single SaveChanges
+
+        return Result.Success();
+    }
+
     public async Task<Result<LoginResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive, cancellationToken);
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             return Result<LoginResponse>.Failure("Invalid credentials", "INVALID_CREDENTIALS");
 
+        var familyId = Guid.NewGuid();
+        var (rawToken, tokenEntity) = BuildRefreshToken(user.Id, familyId);
+        _db.RefreshTokens.Add(tokenEntity);
+
         var (accessToken, expiresAt, expiresIn) = GenerateAccessToken(user);
-        var (refreshTokenValue, _) = await CreateRefreshTokenAsync(user.Id, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse(
             accessToken,
-            refreshTokenValue,
+            rawToken,
             expiresAt,
             expiresIn));
     }
@@ -47,28 +98,42 @@ public class AuthService : IAuthService
     public async Task<Result<LoginResponse>> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(refreshToken);
+
+        // Query without RevokedAtUtc filter to detect reuse of already-consumed tokens
         var stored = await _db.RefreshTokens
             .Include(rt => rt.User)
-            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash && rt.ExpiresAtUtc > DateTime.UtcNow && rt.RevokedAtUtc == null, cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash, cancellationToken);
 
         if (stored == null)
             return Result<LoginResponse>.Failure("Invalid or expired refresh token", "REFRESH_TOKEN_INVALID");
 
-        if (stored.ReplacedByTokenId != null)
+        // Reuse detected: token was already consumed — invalidate entire family in one SaveChanges
+        if (stored.RevokedAtUtc != null)
+        {
+            await RevokeTokenFamilyAsync(stored.FamilyId, "Reuse detected", cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
             return Result<LoginResponse>.Failure("Refresh token reuse detected", "REFRESH_TOKEN_REUSE");
+        }
 
-        stored.RevokedAtUtc = DateTime.UtcNow;
-        stored.UpdatedAtUtc = DateTime.UtcNow;
+        if (stored.ExpiresAtUtc <= DateTime.UtcNow)
+            return Result<LoginResponse>.Failure("Invalid or expired refresh token", "REFRESH_TOKEN_INVALID");
 
-        var (newRefreshTokenValue, newTokenId) = await CreateRefreshTokenAsync(stored.UserId, cancellationToken);
-        stored.ReplacedByTokenId = newTokenId.ToString();
+        // Normal rotation: build successor token (same family), mark predecessor revoked — one SaveChanges
+        var now = DateTime.UtcNow;
+        var (newRawToken, newTokenEntity) = BuildRefreshToken(stored.UserId, stored.FamilyId);
+        _db.RefreshTokens.Add(newTokenEntity);
+
+        stored.RevokedAtUtc = now;
+        stored.UpdatedAtUtc = now;
+        stored.ReplacedByTokenId = newTokenEntity.Id.ToString();
+        stored.RevocationReason = "Rotated";
 
         var (accessToken, expiresAt, expiresIn) = GenerateAccessToken(stored.User);
         await _db.SaveChangesAsync(cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse(
             accessToken,
-            newRefreshTokenValue,
+            newRawToken,
             expiresAt,
             expiresIn));
     }
@@ -115,22 +180,36 @@ public class AuthService : IAuthService
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt, expiresIn);
     }
 
-    private async Task<(string Token, Guid EntityId)> CreateRefreshTokenAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task RevokeTokenFamilyAsync(Guid familyId, string reason, CancellationToken cancellationToken)
     {
-        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-        var hash = HashToken(token);
+        var activeTokens = await _db.RefreshTokens
+            .Where(rt => rt.FamilyId == familyId && rt.RevokedAtUtc == null)
+            .ToListAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAtUtc = now;
+            token.UpdatedAtUtc = now;
+            token.RevocationReason = reason;
+        }
+        // Caller is responsible for the single SaveChanges
+    }
+
+    private (string RawToken, RefreshToken Entity) BuildRefreshToken(Guid userId, Guid familyId)
+    {
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var entity = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            TokenHash = hash,
+            FamilyId = familyId,
+            TokenHash = HashToken(rawToken),
             ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow
         };
-        _db.RefreshTokens.Add(entity);
-        await _db.SaveChangesAsync(cancellationToken);
-        return (token, entity.Id);
+        return (rawToken, entity);
     }
 
     private static string HashToken(string token)

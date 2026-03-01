@@ -1,4 +1,5 @@
 using MediatR;
+using Movix.Application.Common.Exceptions;
 using Movix.Application.Common.Interfaces;
 using Movix.Application.Common.Models;
 using Movix.Application.Trips.Commands.CreateTrip;
@@ -36,13 +37,31 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
         if (!TripStateMachine.CanTransition(trip.Status, request.TargetStatus))
             return Result<TripDto>.Failure($"Invalid transition from {trip.Status} to {request.TargetStatus}", "INVALID_TRANSITION");
 
-        var userId = _currentUser.UserId ?? Guid.Empty;
+        // ABAC — R-1 / R-2
+        var userId = _currentUser.UserId;
+        var role = _currentUser.Role;
+        var isAdminOrSupport = role == Role.Admin || role == Role.Support;
+
+        if (request.TargetStatus is TripStatus.DriverArrived or TripStatus.InProgress or TripStatus.Completed)
+        {
+            if (trip.DriverId == null)
+                return Result<TripDto>.Failure("No driver assigned to this trip", "DRIVER_NOT_ASSIGNED");
+            if (!isAdminOrSupport && userId != trip.DriverId)
+                return Result<TripDto>.Failure("Forbidden", "FORBIDDEN");
+        }
+        else if (request.TargetStatus == TripStatus.Cancelled)
+        {
+            if (!isAdminOrSupport && userId != trip.PassengerId && userId != trip.DriverId)
+                return Result<TripDto>.Failure("Forbidden", "FORBIDDEN");
+        }
+
+        var userIdForAudit = userId ?? Guid.Empty;
         var now = _dateTime.UtcNow;
         var fromStatus = trip.Status;
 
         trip.Status = request.TargetStatus;
         trip.UpdatedAtUtc = now;
-        trip.UpdatedBy = userId.ToString();
+        trip.UpdatedBy = userIdForAudit.ToString();
 
         trip.StatusHistory.Add(new TripStatusHistory
         {
@@ -53,11 +72,19 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
             Reason = request.Reason,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            CreatedBy = userId.ToString(),
-            UpdatedBy = userId.ToString()
+            CreatedBy = userIdForAudit.ToString(),
+            UpdatedBy = userIdForAudit.ToString()
         });
 
-        await _uow.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyException)
+        {
+            return Result<TripDto>.Failure("Concurrent modification", "CONFLICT");
+        }
+
         return Result<TripDto>.Success(Map(trip));
     }
 

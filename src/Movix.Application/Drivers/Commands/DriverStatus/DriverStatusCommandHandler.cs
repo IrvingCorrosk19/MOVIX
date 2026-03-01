@@ -1,4 +1,5 @@
 using MediatR;
+using Movix.Application.Common.Exceptions;
 using Movix.Application.Common.Interfaces;
 using Movix.Application.Common.Models;
 
@@ -38,7 +39,15 @@ public class DriverStatusCommandHandler : IRequestHandler<DriverStatusCommand, R
         driver.UpdatedBy = userId.ToString();
 
         await _driverRepository.UpdateAsync(driver, cancellationToken);
-        await _uow.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        catch (ConcurrencyException)
+        {
+            return Result.Failure("Concurrent modification", "CONFLICT");
+        }
 
         return Result.Success();
     }

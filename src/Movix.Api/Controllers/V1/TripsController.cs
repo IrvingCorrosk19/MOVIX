@@ -50,7 +50,7 @@ public class TripsController : ControllerBase
     {
         var result = await _mediator.Send(new GetTripQuery(id), ct);
         if (!result.Succeeded)
-            return NotFound(new { error = result.Error, code = result.ErrorCode });
+            return MapError(result);
         return Ok(result.Data);
     }
 
@@ -60,9 +60,7 @@ public class TripsController : ControllerBase
     public async Task<IActionResult> Accept(Guid id, [FromBody] AcceptTripRequest request, CancellationToken ct)
     {
         var result = await _mediator.Send(new AcceptTripCommand(id, request.VehicleId), ct);
-        if (!result.Succeeded)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Data);
+        return ToResult(result);
     }
 
     [HttpPost("{id:guid}/arrive")]
@@ -89,6 +87,7 @@ public class TripsController : ControllerBase
         return ToResult(result);
     }
 
+    // Cancel: [Authorize] heredado del controlador. ABAC verificado en TransitionTripCommandHandler (passenger OR driver del viaje OR Admin/Support).
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelTripRequest? request, CancellationToken ct)
     {
@@ -99,9 +98,19 @@ public class TripsController : ControllerBase
     private IActionResult ToResult(Result<TripDto> result)
     {
         if (!result.Succeeded)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+            return MapError(result);
         return Ok(result.Data);
     }
+
+    private IActionResult MapError(Result result) => result.ErrorCode switch
+    {
+        "FORBIDDEN"            => StatusCode(403, new { error = result.Error, code = result.ErrorCode }),
+        "TRIP_NOT_FOUND"       => NotFound(new { error = result.Error, code = result.ErrorCode }),
+        "INVALID_TRANSITION"   => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
+        "DRIVER_NOT_ASSIGNED"  => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
+        "CONFLICT"             => Conflict(new { error = result.Error, code = result.ErrorCode }),
+        _                      => BadRequest(new { error = result.Error, code = result.ErrorCode })
+    };
 }
 
 public record CreateTripRequest(

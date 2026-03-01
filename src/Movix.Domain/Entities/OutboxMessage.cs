@@ -8,4 +8,12 @@ public class OutboxMessage
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ProcessedAtUtc { get; set; }
     public string? Error { get; set; }
+    public int AttemptCount { get; private set; }
+    public DateTime? LastAttemptUtc { get; private set; }
+
+    public void RecordFailedAttempt()
+    {
+        AttemptCount++;
+        LastAttemptUtc = DateTime.UtcNow;
+    }
 }
