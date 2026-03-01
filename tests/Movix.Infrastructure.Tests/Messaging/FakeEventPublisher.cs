@@ -4,13 +4,13 @@ namespace Movix.Infrastructure.Tests.Messaging;
 
 public sealed class FakeEventPublisher : IEventPublisher
 {
-    private readonly List<(string Type, string Payload)> _published = new();
+    private readonly List<(Guid EventId, string Type, string Payload, string? CorrelationId)> _published = new();
 
-    public Task PublishAsync(string type, string payload, CancellationToken ct)
+    public Task PublishAsync(Guid eventId, string type, string payload, string? correlationId, CancellationToken ct)
     {
-        _published.Add((type, payload));
+        _published.Add((eventId, type, payload, correlationId));
         return Task.CompletedTask;
     }
 
-    public IReadOnlyList<(string Type, string Payload)> GetPublished() => _published;
+    public IReadOnlyList<(Guid EventId, string Type, string Payload, string? CorrelationId)> GetPublished() => _published;
 }

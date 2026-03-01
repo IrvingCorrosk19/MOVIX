@@ -11,9 +11,9 @@ public sealed class LoggingEventPublisher : IEventPublisher
         _logger = logger;
     }
 
-    public Task PublishAsync(string type, string payload, CancellationToken ct)
+    public Task PublishAsync(Guid eventId, string type, string payload, string? correlationId, CancellationToken ct)
     {
-        _logger.LogInformation("Publishing event {Type} {Payload}", type, payload);
+        _logger.LogInformation("Publishing event {EventId} {Type} Correlation:{CorrelationId}", eventId, type, correlationId);
         return Task.CompletedTask;
     }
 }

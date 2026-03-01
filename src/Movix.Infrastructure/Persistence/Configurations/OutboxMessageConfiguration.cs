@@ -10,6 +10,9 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
     {
         b.ToTable("outbox_messages");
         b.HasKey(x => x.Id);
+        b.Property(x => x.EventId).IsRequired();
+        b.HasIndex(x => x.EventId).IsUnique();
+        b.Property(x => x.CorrelationId).HasMaxLength(100);
         b.Property(x => x.Type).HasMaxLength(200).IsRequired();
         b.Property(x => x.Payload).IsRequired();
         b.Property(x => x.Error).HasMaxLength(2000);

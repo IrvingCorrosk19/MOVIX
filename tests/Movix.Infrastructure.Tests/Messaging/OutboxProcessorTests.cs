@@ -109,6 +109,32 @@ public class OutboxProcessorTests
     }
 
     [Fact]
+    public async Task ProcessOnceAsync_PassesEventId_ToPublisher()
+    {
+        var dbName = $"outbox_evt_{Guid.NewGuid()}";
+        await using var db = CreateInMemoryContext(dbName);
+
+        var msg = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Type = "TripCreated",
+            Payload = """{"tripId":"t1"}""",
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        var expectedEventId = msg.EventId;
+        db.OutboxMessages.Add(msg);
+        await db.SaveChangesAsync();
+
+        var publisher = new FakeEventPublisher();
+        var processor = new OutboxProcessor(null!, NullLogger<OutboxProcessor>.Instance);
+        await processor.ProcessOnceAsync(db, publisher);
+
+        var published = publisher.GetPublished();
+        Assert.Single(published);
+        Assert.Equal(expectedEventId, published[0].EventId);
+    }
+
+    [Fact]
     public async Task ProcessOnceAsync_WhenMaxAttemptsReached_DoesNotRetry()
     {
         var dbName = $"outbox_max_{Guid.NewGuid()}";
@@ -146,6 +172,6 @@ public class OutboxProcessorTests
 
     private sealed class ThrowingEventPublisher : IEventPublisher
     {
-        public Task PublishAsync(string type, string payload, CancellationToken ct) => throw new InvalidOperationException("Simulated failure");
+        public Task PublishAsync(Guid eventId, string type, string payload, string? correlationId, CancellationToken ct) => throw new InvalidOperationException("Simulated failure");
     }
 }

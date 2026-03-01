@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Movix.Infrastructure.Persistence;
 using NetTopologySuite.Geometries;
@@ -9,12 +10,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Movix.Infrastructure.Migrations
+namespace Movix.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(MovixDbContext))]
-    partial class MovixDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260301193901_AddOutboxEventIdentity")]
+    partial class AddOutboxEventIdentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
