@@ -20,6 +20,7 @@ public class MovixDbContext : DbContext
     public DbSet<TariffPlan> TariffPlans => Set<TariffPlan>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<DriverAvailability> DriverAvailabilities => Set<DriverAvailability>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

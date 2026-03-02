@@ -23,9 +23,10 @@ public class CreatePaymentCommandHandlerTests
     private readonly Mock<ITenantContext> _tenantContext = new();
     private readonly Mock<IDateTimeService> _dateTime = new();
     private readonly Mock<IUnitOfWork> _uow = new();
+    private readonly Mock<IAuditService> _audit = new();
 
     private CreatePaymentCommandHandler CreateHandler() =>
-        new(_paymentRepo.Object, _tripRepo.Object, _idempotency.Object, _outboxRepo.Object, _gateway.Object, _currentUser.Object, _tenantContext.Object, _dateTime.Object, _uow.Object);
+        new(_paymentRepo.Object, _tripRepo.Object, _idempotency.Object, _outboxRepo.Object, _gateway.Object, _currentUser.Object, _tenantContext.Object, _dateTime.Object, _uow.Object, _audit.Object);
 
     private static Trip MakeTrip(Guid passengerId, TripStatus status, Guid? tenantId = null) => new()
     {
@@ -196,7 +197,7 @@ public class CreatePaymentCommandHandlerTests
         _tenantContext.Setup(t => t.TenantId).Returns((Guid?)null);
         var handler = new CreatePaymentCommandHandler(
             _paymentRepo.Object, _tripRepo.Object, _idempotency.Object, _outboxRepo.Object,
-            simGateway, _currentUser.Object, _tenantContext.Object, _dateTime.Object, _uow.Object);
+            simGateway, _currentUser.Object, _tenantContext.Object, _dateTime.Object, _uow.Object, _audit.Object);
         var result = await handler.Handle(new CreatePaymentCommand("key", tripId, 10m, "USD"), default);
 
         Assert.True(result.Succeeded);

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using Movix.Application.Common.Interfaces;
 using Movix.Application.Pricing.Commands.ActivateTariffPlan;
 using Movix.Application.Pricing.Queries.GetActiveTariffPlan;
 using Movix.Application.Pricing.Queries.QuoteFare;
@@ -61,7 +63,8 @@ public class TariffPlanTests
 
         var repo = new TariffPlanRepository(db);
         var uow = new UnitOfWork(db);
-        var handler = new ActivateTariffPlanCommandHandler(repo, uow);
+        var audit = new Mock<IAuditService>();
+        var handler = new ActivateTariffPlanCommandHandler(repo, uow, audit.Object);
         await handler.Handle(new ActivateTariffPlanCommand(tenantId, plan2.Id), default);
 
         var applicable = await repo.GetApplicableTariffAsync(tenantId, now);
@@ -313,7 +316,8 @@ public class TariffPlanTests
 
         var repo = new TariffPlanRepository(db);
         var uow = new UnitOfWork(db);
-        var handler = new ActivateTariffPlanCommandHandler(repo, uow);
+        var audit = new Mock<IAuditService>();
+        var handler = new ActivateTariffPlanCommandHandler(repo, uow, audit.Object);
         var result = await handler.Handle(new ActivateTariffPlanCommand(tenantId, plan2.Id), default);
 
         Assert.False(result.Succeeded);

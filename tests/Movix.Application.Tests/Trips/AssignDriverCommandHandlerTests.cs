@@ -20,9 +20,10 @@ public class AssignDriverCommandHandlerTests
     private readonly Mock<ITenantContext> _tenantContext = new();
     private readonly Mock<IDateTimeService> _dateTime = new();
     private readonly Mock<IUnitOfWork> _uow = new();
+    private readonly Mock<IAuditService> _audit = new();
 
     private AssignDriverCommandHandler CreateHandler() =>
-        new(_tripRepo.Object, _availRepo.Object, _outboxRepo.Object, _currentUser.Object, _tenantContext.Object, _dateTime.Object, _uow.Object);
+        new(_tripRepo.Object, _availRepo.Object, _outboxRepo.Object, _currentUser.Object, _tenantContext.Object, _dateTime.Object, _uow.Object, _audit.Object);
 
     private void SetAdminWithTenant(Guid tenantId)
     {

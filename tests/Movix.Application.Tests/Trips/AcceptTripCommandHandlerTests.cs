@@ -58,8 +58,9 @@ public class AcceptTripCommandHandlerTests
         dateTime.Setup(d => d.UtcNow).Returns(DateTime.UtcNow);
         uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
 
+        var audit = new Mock<IAuditService>();
         var handler = new AcceptTripCommandHandler(
-            tripRepo.Object, driverRepo.Object, currentUser.Object, dateTime.Object, uow.Object);
+            tripRepo.Object, driverRepo.Object, currentUser.Object, dateTime.Object, uow.Object, audit.Object);
 
         var result = await handler.Handle(new AcceptTripCommand(trip.Id, vehicleId), default);
 

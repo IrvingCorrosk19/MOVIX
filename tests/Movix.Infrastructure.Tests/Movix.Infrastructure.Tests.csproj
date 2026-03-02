@@ -16,6 +16,7 @@
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.10.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Movix.Domain\Movix.Domain.csproj" />
     <ProjectReference Include="..\..\src\Movix.Application\Movix.Application.csproj" />
     <ProjectReference Include="..\..\src\Movix.Infrastructure\Movix.Infrastructure.csproj" />
   </ItemGroup>

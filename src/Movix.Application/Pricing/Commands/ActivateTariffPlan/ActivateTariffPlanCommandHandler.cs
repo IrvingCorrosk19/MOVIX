@@ -9,11 +9,13 @@ public class ActivateTariffPlanCommandHandler : IRequestHandler<ActivateTariffPl
 {
     private readonly ITariffPlanRepository _repository;
     private readonly IUnitOfWork _uow;
+    private readonly IAuditService _audit;
 
-    public ActivateTariffPlanCommandHandler(ITariffPlanRepository repository, IUnitOfWork uow)
+    public ActivateTariffPlanCommandHandler(ITariffPlanRepository repository, IUnitOfWork uow, IAuditService audit)
     {
         _repository = repository;
         _uow = uow;
+        _audit = audit;
     }
 
     public async Task<Result<TariffPlanDto>> Handle(ActivateTariffPlanCommand request, CancellationToken cancellationToken)
@@ -32,6 +34,7 @@ public class ActivateTariffPlanCommandHandler : IRequestHandler<ActivateTariffPl
         plan.IsActive = true;
 
         await _uow.SaveChangesAsync(cancellationToken);
+        await _audit.LogAsync("ActivateTariffPlan", "TariffPlan", plan.Id, new { plan.Priority }, cancellationToken);
         return Result<TariffPlanDto>.Success(Map(plan));
     }
 

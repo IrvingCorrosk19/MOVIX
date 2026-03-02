@@ -17,19 +17,22 @@ public class AcceptTripCommandHandler : IRequestHandler<AcceptTripCommand, Resul
     private readonly ICurrentUserService _currentUser;
     private readonly IDateTimeService _dateTime;
     private readonly IUnitOfWork _uow;
+    private readonly IAuditService _audit;
 
     public AcceptTripCommandHandler(
         ITripRepository tripRepository,
         IDriverRepository driverRepository,
         ICurrentUserService currentUser,
         IDateTimeService dateTime,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IAuditService audit)
     {
         _tripRepository = tripRepository;
         _driverRepository = driverRepository;
         _currentUser = currentUser;
         _dateTime = dateTime;
         _uow = uow;
+        _audit = audit;
     }
 
     public async Task<Result<TripDto>> Handle(AcceptTripCommand request, CancellationToken cancellationToken)
@@ -86,6 +89,7 @@ public class AcceptTripCommandHandler : IRequestHandler<AcceptTripCommand, Resul
             return Result<TripDto>.Failure("Concurrent modification", "CONFLICT");
         }
 
+        await _audit.LogAsync("AcceptTrip", "Trip", trip.Id, null, cancellationToken);
         return Result<TripDto>.Success(new TripDto(
             trip.Id,
             trip.Status.ToString(),

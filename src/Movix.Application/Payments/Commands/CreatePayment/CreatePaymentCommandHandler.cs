@@ -20,6 +20,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
     private readonly ITenantContext _tenantContext;
     private readonly IDateTimeService _dateTime;
     private readonly IUnitOfWork _uow;
+    private readonly IAuditService _audit;
 
     public CreatePaymentCommandHandler(
         IPaymentRepository paymentRepository,
@@ -30,7 +31,8 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         ICurrentUserService currentUser,
         ITenantContext tenantContext,
         IDateTimeService dateTime,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IAuditService audit)
     {
         _paymentRepository = paymentRepository;
         _tripRepository = tripRepository;
@@ -41,6 +43,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         _tenantContext = tenantContext;
         _dateTime = dateTime;
         _uow = uow;
+        _audit = audit;
     }
 
     public async Task<Result<PaymentDto>> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
@@ -115,6 +118,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         }, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await _idempotencyService.StoreAsync(request.IdempotencyKey, paymentEntity.Id.ToString(), cancellationToken);
+        await _audit.LogAsync("CreatePayment", "Trip", trip.Id, new { amount = paymentEntity.Amount }, cancellationToken);
 
         return Result<PaymentDto>.Success(Map(paymentEntity, gatewayResult.ClientSecret));
     }

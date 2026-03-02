@@ -20,6 +20,7 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
     private readonly ITenantContext _tenantContext;
     private readonly IDateTimeService _dateTime;
     private readonly IUnitOfWork _uow;
+    private readonly IAuditService _audit;
 
     public AssignDriverCommandHandler(
         ITripRepository tripRepository,
@@ -28,7 +29,8 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
         ICurrentUserService currentUser,
         ITenantContext tenantContext,
         IDateTimeService dateTime,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IAuditService audit)
     {
         _tripRepository = tripRepository;
         _availabilityRepository = availabilityRepository;
@@ -37,6 +39,7 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
         _tenantContext = tenantContext;
         _dateTime = dateTime;
         _uow = uow;
+        _audit = audit;
     }
 
     public async Task<Result<TripDto>> Handle(AssignDriverCommand request, CancellationToken cancellationToken)
@@ -105,6 +108,7 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
             return Result<TripDto>.Failure("No drivers available", "NO_DRIVERS_AVAILABLE");
         }
 
+        await _audit.LogAsync("AssignDriver", "Trip", trip.Id, new { driverId = availability.DriverId }, cancellationToken);
         return Result<TripDto>.Success(Map(trip));
     }
 

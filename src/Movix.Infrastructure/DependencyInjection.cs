@@ -52,6 +52,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IDateTimeService, DateTimeService>();
+        services.AddScoped<IAuditService, AuditService>();
 
         services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IDriverRepository, DriverRepository>();

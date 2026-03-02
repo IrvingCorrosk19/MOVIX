@@ -33,7 +33,8 @@ public class ActivateTariffPlanCrossTenantTests
         };
         repo.Setup(r => r.GetByIdAsync(planId, default)).ReturnsAsync(plan);
 
-        var handler = new ActivateTariffPlanCommandHandler(repo.Object, uow.Object);
+        var audit = new Mock<IAuditService>();
+        var handler = new ActivateTariffPlanCommandHandler(repo.Object, uow.Object, audit.Object);
         var result = await handler.Handle(new ActivateTariffPlanCommand(tenantA, planId), default);
 
         Assert.False(result.Succeeded);
