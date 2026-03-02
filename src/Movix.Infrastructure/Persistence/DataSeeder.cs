@@ -7,6 +7,10 @@ namespace Movix.Infrastructure.Persistence;
 
 public class DataSeeder
 {
+    // Deterministic GUID for the default development tenant.
+    // All seeded users/drivers are assigned to this tenant so the FK constraint is satisfied.
+    public static readonly Guid DevTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
     private const string AdminEmailKey = "ADMIN_EMAIL";
     private const string AdminPasswordKey = "ADMIN_PASSWORD";
     private const string DriverEmailKey = "DRIVER_EMAIL";
@@ -24,6 +28,9 @@ public class DataSeeder
         if (!string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase))
             return;
 
+        // Always ensure the dev tenant exists first — users/drivers have a FK to tenants.
+        await EnsureDevTenantAsync(db, cancellationToken);
+
         var adminEmail = _configuration[AdminEmailKey];
         var adminPassword = _configuration[AdminPasswordKey];
         if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
@@ -37,6 +44,26 @@ public class DataSeeder
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    private static async Task EnsureDevTenantAsync(MovixDbContext db, CancellationToken ct)
+    {
+        var exists = await db.Tenants.AnyAsync(t => t.Id == DevTenantId, ct);
+        if (exists) return;
+
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = DevTenantId,
+            Name = "Dev Tenant",
+            IsActive = true,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+            RowVersion = new byte[] { 1 }
+        });
+
+        // Flush the tenant insert so FK constraints are satisfied for users/drivers added next.
+        await db.SaveChangesAsync(ct);
+    }
+
     private static async Task EnsureAdminUserAsync(MovixDbContext db, string email, string password, CancellationToken ct)
     {
         var exists = await db.Users.AnyAsync(u => u.Email == email, ct);
@@ -46,6 +73,7 @@ public class DataSeeder
         var user = new User
         {
             Id = Guid.NewGuid(),
+            TenantId = DevTenantId,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = Role.Admin,
@@ -70,6 +98,15 @@ public class DataSeeder
                 existingUser.UpdatedAtUtc = DateTime.UtcNow;
                 existingUser.UpdatedBy = "Seed";
             }
+
+            // Backfill TenantId for existing seed users that predate FASE 1.
+            if (existingUser.TenantId == Guid.Empty)
+            {
+                existingUser.TenantId = DevTenantId;
+                existingUser.UpdatedAtUtc = DateTime.UtcNow;
+                existingUser.UpdatedBy = "Seed";
+            }
+
             var hasDriver = await db.Drivers.AnyAsync(d => d.UserId == existingUser.Id, ct);
             if (hasDriver) return;
 
@@ -78,6 +115,7 @@ public class DataSeeder
             {
                 Id = Guid.NewGuid(),
                 UserId = existingUser.Id,
+                TenantId = DevTenantId,
                 Status = DriverStatus.Offline,
                 IsVerified = true,
                 CreatedAtUtc = now,
@@ -108,6 +146,7 @@ public class DataSeeder
         var user = new User
         {
             Id = Guid.NewGuid(),
+            TenantId = DevTenantId,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = Role.Driver,
@@ -124,6 +163,7 @@ public class DataSeeder
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
+            TenantId = DevTenantId,
             Status = DriverStatus.Offline,
             IsVerified = true,
             CreatedAtUtc = now2,

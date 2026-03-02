@@ -15,6 +15,12 @@ public class TripConfiguration : IEntityTypeConfiguration<Trip>
         b.Property(x => x.PickupAddress).HasMaxLength(500);
         b.Property(x => x.DropoffAddress).HasMaxLength(500);
         b.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+        b.Property(x => x.DistanceKm).HasPrecision(18, 4);
+        b.Property(x => x.DurationMinutes).HasPrecision(18, 4);
+        b.Property(x => x.BaseFareUsed).HasPrecision(18, 4);
+        b.Property(x => x.PricePerKmUsed).HasPrecision(18, 4);
+        b.Property(x => x.PricePerMinuteUsed).HasPrecision(18, 4);
+        b.Property(x => x.MinimumFareUsed).HasPrecision(18, 4);
         b.Property(x => x.CreatedAtUtc).HasColumnName("CreatedAtUtc");
         b.Property(x => x.UpdatedAtUtc).HasColumnName("UpdatedAtUtc");
         b.Property(x => x.CreatedBy).HasMaxLength(100);
@@ -25,6 +31,8 @@ public class TripConfiguration : IEntityTypeConfiguration<Trip>
         b.HasIndex(x => x.DriverId);
         b.HasIndex(x => x.Status);
         b.HasIndex(x => x.CreatedAtUtc);
+        b.HasIndex(x => x.TenantId);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).IsRequired(false);
         b.HasIndex(x => x.PickupLocation).HasMethod("GIST");
         b.HasIndex(x => x.DropoffLocation).HasMethod("GIST");
     }

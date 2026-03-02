@@ -13,6 +13,7 @@ public class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Resul
     private readonly ITripRepository _tripRepository;
     private readonly IIdempotencyService _idempotencyService;
     private readonly ICurrentUserService _currentUser;
+    private readonly ITenantContext _tenantContext;
     private readonly IDateTimeService _dateTime;
     private readonly IUnitOfWork _uow;
 
@@ -20,12 +21,14 @@ public class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Resul
         ITripRepository tripRepository,
         IIdempotencyService idempotencyService,
         ICurrentUserService currentUser,
+        ITenantContext tenantContext,
         IDateTimeService dateTime,
         IUnitOfWork uow)
     {
         _tripRepository = tripRepository;
         _idempotencyService = idempotencyService;
         _currentUser = currentUser;
+        _tenantContext = tenantContext;
         _dateTime = dateTime;
         _uow = uow;
     }
@@ -35,6 +38,9 @@ public class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Resul
         var userId = _currentUser.UserId;
         if (!userId.HasValue)
             return Result<TripDto>.Failure("Unauthorized", "UNAUTHORIZED");
+        var tenantId = _tenantContext.TenantId;
+        if (!tenantId.HasValue)
+            return Result<TripDto>.Failure("Tenant is required", "TENANT_REQUIRED");
 
         var existing = await _idempotencyService.GetResponseAsync(request.IdempotencyKey, cancellationToken);
         if (existing != null)
@@ -54,6 +60,7 @@ public class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Resul
             Id = Guid.NewGuid(),
             IdempotencyKey = request.IdempotencyKey,
             PassengerId = userId.Value,
+            TenantId = tenantId,
             Status = TripStatus.Requested,
             PickupLocation = pickup,
             DropoffLocation = dropoff,

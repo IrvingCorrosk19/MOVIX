@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Movix.Application.Common.Models;
 using Movix.Application.Trips.Commands.AcceptTrip;
+using Movix.Application.Trips.Commands.AssignDriver;
 using Movix.Application.Trips.Commands.CreateTrip;
 using Movix.Application.Trips.Commands.TransitionTrip;
 using Movix.Application.Trips.Queries.GetTrip;
@@ -25,6 +26,7 @@ public class TripsController : ControllerBase
 
     [HttpPost]
     [EnableRateLimiting("trips")]
+    [Movix.Api.Filters.RequireTenant]
     public async Task<IActionResult> Create([FromBody] CreateTripRequest request, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -54,6 +56,18 @@ public class TripsController : ControllerBase
         return Ok(result.Data);
     }
 
+    [HttpPost("{id:guid}/assign-driver")]
+    [Authorize(Roles = "Admin,Support")]
+    [Movix.Api.Filters.RequireTenant]
+    [EnableRateLimiting("trips")]
+    public async Task<IActionResult> AssignDriver(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new AssignDriverCommand(id), ct);
+        if (!result.Succeeded)
+            return MapError(result);
+        return Ok(result.Data);
+    }
+
     [HttpPost("{id:guid}/accept")]
     [Authorize(Roles = "Driver,Admin")]
     [EnableRateLimiting("trips")]
@@ -65,6 +79,7 @@ public class TripsController : ControllerBase
 
     [HttpPost("{id:guid}/arrive")]
     [Authorize(Roles = "Driver,Admin")]
+    [Movix.Api.Filters.RequireTenant]
     public async Task<IActionResult> Arrive(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new TransitionTripCommand(id, TripStatus.DriverArrived), ct);
@@ -73,6 +88,7 @@ public class TripsController : ControllerBase
 
     [HttpPost("{id:guid}/start")]
     [Authorize(Roles = "Driver,Admin")]
+    [Movix.Api.Filters.RequireTenant]
     public async Task<IActionResult> Start(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new TransitionTripCommand(id, TripStatus.InProgress), ct);
@@ -81,14 +97,19 @@ public class TripsController : ControllerBase
 
     [HttpPost("{id:guid}/complete")]
     [Authorize(Roles = "Driver,Admin")]
-    public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteTripRequest? request, CancellationToken ct)
     {
-        var result = await _mediator.Send(new TransitionTripCommand(id, TripStatus.Completed), ct);
+        var result = await _mediator.Send(new TransitionTripCommand(
+            id, TripStatus.Completed,
+            null,
+            request?.DistanceKm,
+            request?.DurationMinutes), ct);
         return ToResult(result);
     }
 
     // Cancel: [Authorize] heredado del controlador. ABAC verificado en TransitionTripCommandHandler (passenger OR driver del viaje OR Admin/Support).
     [HttpPost("{id:guid}/cancel")]
+    [Movix.Api.Filters.RequireTenant]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelTripRequest? request, CancellationToken ct)
     {
         var result = await _mediator.Send(new TransitionTripCommand(id, TripStatus.Cancelled, request?.Reason), ct);
@@ -104,12 +125,14 @@ public class TripsController : ControllerBase
 
     private IActionResult MapError(Result result) => result.ErrorCode switch
     {
-        "FORBIDDEN"            => StatusCode(403, new { error = result.Error, code = result.ErrorCode }),
-        "TRIP_NOT_FOUND"       => NotFound(new { error = result.Error, code = result.ErrorCode }),
-        "INVALID_TRANSITION"   => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
-        "DRIVER_NOT_ASSIGNED"  => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
-        "CONFLICT"             => Conflict(new { error = result.Error, code = result.ErrorCode }),
-        _                      => BadRequest(new { error = result.Error, code = result.ErrorCode })
+        "FORBIDDEN"             => StatusCode(403, new { error = result.Error, code = result.ErrorCode }),
+        "TRIP_NOT_FOUND"        => NotFound(new { error = result.Error, code = result.ErrorCode }),
+        "TRIP_INVALID_STATE"    => BadRequest(new { error = result.Error, code = result.ErrorCode }),
+        "NO_DRIVERS_AVAILABLE"  => Conflict(new { error = result.Error, code = result.ErrorCode }),
+        "INVALID_TRANSITION"    => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
+        "DRIVER_NOT_ASSIGNED"   => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
+        "CONFLICT"              => Conflict(new { error = result.Error, code = result.ErrorCode }),
+        _                       => BadRequest(new { error = result.Error, code = result.ErrorCode })
     };
 }
 
@@ -124,3 +147,4 @@ public record CreateTripRequest(
     string? Currency);
 public record AcceptTripRequest(Guid VehicleId);
 public record CancelTripRequest(string? Reason);
+public record CompleteTripRequest(decimal? DistanceKm, decimal? DurationMinutes);

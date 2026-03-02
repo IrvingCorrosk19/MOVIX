@@ -1,6 +1,9 @@
 using Moq;
 using Movix.Application.Common.Exceptions;
 using Movix.Application.Common.Interfaces;
+using Movix.Application.Drivers;
+using Movix.Application.Outbox;
+using Movix.Application.Pricing;
 using Movix.Application.Trips;
 using Movix.Application.Trips.Commands.TransitionTrip;
 using Movix.Domain.Entities;
@@ -11,13 +14,23 @@ namespace Movix.Application.Tests.Trips;
 
 public class TransitionTripCommandHandlerTests
 {
-    private readonly Mock<ITripRepository>      _tripRepo    = new();
-    private readonly Mock<ICurrentUserService>  _currentUser = new();
-    private readonly Mock<IDateTimeService>     _dateTime    = new();
-    private readonly Mock<IUnitOfWork>          _uow         = new();
+    private readonly Mock<ITripRepository>               _tripRepo    = new();
+    private readonly Mock<ITariffPlanRepository>        _tariffRepo  = new();
+    private readonly Mock<IFareCalculator>               _fareCalc   = new();
+    private readonly Mock<IDriverAvailabilityRepository> _availRepo   = new();
+    private readonly Mock<IOutboxMessageRepository>     _outboxRepo  = new();
+    private readonly Mock<ITenantContext>                _tenantContext = new();
+    private readonly Mock<ICurrentUserService>           _currentUser = new();
+    private readonly Mock<IDateTimeService>              _dateTime    = new();
+    private readonly Mock<IUnitOfWork>                  _uow         = new();
+
+    public TransitionTripCommandHandlerTests()
+    {
+        _tenantContext.Setup(c => c.TenantId).Returns(Guid.NewGuid());
+    }
 
     private TransitionTripCommandHandler CreateHandler() =>
-        new(_tripRepo.Object, _currentUser.Object, _dateTime.Object, _uow.Object);
+        new(_tripRepo.Object, _tariffRepo.Object, _fareCalc.Object, _availRepo.Object, _outboxRepo.Object, _tenantContext.Object, _currentUser.Object, _dateTime.Object, _uow.Object);
 
     private static Trip MakeTrip(Guid passengerId, Guid? driverId, TripStatus status) => new()
     {
@@ -143,5 +156,27 @@ public class TransitionTripCommandHandlerTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("CONFLICT", result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Complete_WhenDriver_Succeeds_InsertsTripCompletedOutbox()
+    {
+        var driverId = Guid.NewGuid();
+        var trip = MakeTrip(Guid.NewGuid(), driverId, TripStatus.InProgress);
+        _tripRepo.Setup(r => r.GetByIdWithDriverAsync(trip.Id, default)).ReturnsAsync(trip);
+        _currentUser.Setup(c => c.UserId).Returns(driverId);
+        _currentUser.Setup(c => c.Role).Returns(Role.Driver);
+        _dateTime.Setup(d => d.UtcNow).Returns(DateTime.UtcNow);
+        _availRepo.Setup(r => r.GetByDriverIdAsync(driverId, default)).ReturnsAsync(new DriverAvailability { DriverId = driverId, IsOnline = true, CurrentTripId = trip.Id, UpdatedAtUtc = DateTime.UtcNow, RowVersion = new byte[] { 1 } });
+        _uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var result = await CreateHandler().Handle(
+            new TransitionTripCommand(trip.Id, TripStatus.Completed), default);
+
+        Assert.True(result.Succeeded);
+        _outboxRepo.Verify(
+            r => r.AddAsync(It.Is<OutboxMessage>(m => m.Type == "TripCompleted" && m.Payload.Contains(trip.Id.ToString())),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

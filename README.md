@@ -96,6 +96,8 @@ dotnet ef migrations add NombreMigracion --project ../Movix.Infrastructure/Movix
 - `ConnectionStrings__Redis`: cadena de conexión a Redis (ej. `redis:6379`).
 - `Jwt__SecretKey`: clave secreta JWT (mínimo 32 caracteres).
 - `Jwt__Issuer`, `Jwt__Audience`: emisor y audiencia del token (opcional).
+- `Stripe__SecretKey`: clave secreta de API Stripe (Sandbox: `sk_test_...`).
+- `Stripe__WebhookSecret`: secreto de firma del webhook Stripe (`whsec_...`).
 - `ASPNETCORE_ENVIRONMENT`: `Development` o `Production`.
 - `ASPNETCORE_URLS`: URLs de escucha (ej. `http://+:8080`).
 
@@ -132,7 +134,7 @@ Los roles (Passenger, Driver, Admin, Support) son valores del enum en dominio; n
 - **Auth:** `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`
 - **Driver:** `POST /api/v1/drivers/onboarding`, `POST /api/v1/drivers/status`, `POST /api/v1/drivers/location`
 - **Trips:** `POST /api/v1/trips` (header `Idempotency-Key` obligatorio), `GET /api/v1/trips/{id}`, `POST /api/v1/trips/{id}/accept|arrive|start|complete|cancel`
-- **Payments:** `POST /api/v1/payments` (header `Idempotency-Key` obligatorio)
+- **Payments:** `POST /api/v1/payments` (header `Idempotency-Key` obligatorio; devuelve `clientSecret` para Stripe). Webhook: `POST /api/v1/payments/webhook` (header `Stripe-Signature`; sin auth). Ejemplo curl webhook (referencia): `curl -X POST http://localhost:8080/api/v1/payments/webhook -H "Stripe-Signature: <firma>" -H "Content-Type: application/json" -d @payload.json`
 - **Admin:** `GET /api/v1/admin/trips`, `GET /api/v1/admin/drivers` (roles Admin/Support)
 
 ## Observabilidad

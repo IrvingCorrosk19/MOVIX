@@ -9,6 +9,9 @@ namespace Movix.Infrastructure.Tests.Auth;
 
 public class RegisterTests
 {
+    // Shared tenant GUID used across all tests
+    private static readonly Guid TestTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
     private static MovixDbContext CreateInMemoryContext(string dbName)
     {
         var options = new DbContextOptionsBuilder<MovixDbContext>()
@@ -26,15 +29,35 @@ public class RegisterTests
         RefreshTokenExpirationDays = 7
     };
 
+    /// Seeds a Tenant entity so that RegisterAsync passes the tenant existence check.
+    private static async Task SeedTenantAsync(MovixDbContext db)
+    {
+        if (!await db.Tenants.AnyAsync(t => t.Id == TestTenantId))
+        {
+            var now = DateTime.UtcNow;
+            db.Tenants.Add(new Tenant
+            {
+                Id = TestTenantId,
+                Name = "Test Tenant",
+                IsActive = true,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now,
+                RowVersion = new byte[] { 1 }
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
     // F-1 — Registro exitoso: crea usuario Passenger + evento en outbox
     [Fact]
     public async Task Register_NewUser_CreatesUserAndOutbox()
     {
         var dbName = $"register_new_{Guid.NewGuid()}";
         await using var db = CreateInMemoryContext(dbName);
+        await SeedTenantAsync(db);
 
         var service = new AuthService(db, DefaultJwtSettings());
-        var result = await service.RegisterAsync("alice@example.com", "SecurePass1", CancellationToken.None);
+        var result = await service.RegisterAsync("alice@example.com", "SecurePass1", TestTenantId, CancellationToken.None);
 
         // Must succeed with 202-equivalent
         Assert.True(result.Succeeded);
@@ -43,6 +66,7 @@ public class RegisterTests
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == "alice@example.com");
         Assert.NotNull(user);
         Assert.Equal(Role.Passenger, user!.Role);
+        Assert.Equal(TestTenantId, user.TenantId);
         Assert.True(user.IsActive);
         Assert.False(string.IsNullOrWhiteSpace(user.PasswordHash));
 
@@ -65,11 +89,13 @@ public class RegisterTests
     {
         var dbName = $"register_dup_{Guid.NewGuid()}";
         await using var db = CreateInMemoryContext(dbName);
+        await SeedTenantAsync(db);
 
         // Pre-seed existing user
         var existingUser = new User
         {
             Id = Guid.NewGuid(),
+            TenantId = TestTenantId,
             Email = "bob@example.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("OriginalPass1"),
             Role = Role.Passenger,
@@ -84,7 +110,7 @@ public class RegisterTests
         var outboxCountBefore = await db.OutboxMessages.CountAsync();
 
         var service = new AuthService(db, DefaultJwtSettings());
-        var result = await service.RegisterAsync("bob@example.com", "AnotherPass2", CancellationToken.None);
+        var result = await service.RegisterAsync("bob@example.com", "AnotherPass2", TestTenantId, CancellationToken.None);
 
         // Must silently succeed (anti-enumeration)
         Assert.True(result.Succeeded);
@@ -100,5 +126,47 @@ public class RegisterTests
         // Original password hash unchanged
         var unchanged = await db.Users.FindAsync(existingUser.Id);
         Assert.Equal(existingUser.PasswordHash, unchanged!.PasswordHash);
+    }
+
+    // TENANT_NOT_FOUND — registro rechazado si el tenant no existe
+    [Fact]
+    public async Task Register_WhenTenantNotFound_ReturnsFailure()
+    {
+        var dbName = $"register_no_tenant_{Guid.NewGuid()}";
+        await using var db = CreateInMemoryContext(dbName);
+        // Intentionally do NOT seed any tenant
+
+        var service = new AuthService(db, DefaultJwtSettings());
+        var result = await service.RegisterAsync("charlie@example.com", "Pass1234!", Guid.NewGuid(), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("TENANT_NOT_FOUND", result.ErrorCode);
+    }
+
+    // TENANT_INACTIVE — registro rechazado si el tenant está inactivo
+    [Fact]
+    public async Task Register_WhenTenantInactive_ReturnsFailure()
+    {
+        var dbName = $"register_inactive_tenant_{Guid.NewGuid()}";
+        await using var db = CreateInMemoryContext(dbName);
+
+        var inactiveTenantId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        db.Tenants.Add(new Tenant
+        {
+            Id = inactiveTenantId,
+            Name = "Inactive Tenant",
+            IsActive = false,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+            RowVersion = new byte[] { 1 }
+        });
+        await db.SaveChangesAsync();
+
+        var service = new AuthService(db, DefaultJwtSettings());
+        var result = await service.RegisterAsync("dave@example.com", "Pass1234!", inactiveTenantId, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("TENANT_INACTIVE", result.ErrorCode);
     }
 }

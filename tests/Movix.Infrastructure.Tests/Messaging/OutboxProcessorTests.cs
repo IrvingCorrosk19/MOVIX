@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Movix.Domain.Entities;
 using Movix.Infrastructure.Messaging;
 using Movix.Infrastructure.Persistence;
@@ -9,6 +10,12 @@ namespace Movix.Infrastructure.Tests.Messaging;
 
 public class OutboxProcessorTests
 {
+    private static OutboxProcessor CreateProcessor(int maxBatchSize = 50)
+    {
+        var options = Options.Create(new OutboxOptions { MaxBatchSize = maxBatchSize });
+        return new OutboxProcessor(options, NullLogger<OutboxProcessor>.Instance);
+    }
+
     private static MovixDbContext CreateInMemoryContext(string dbName)
     {
         var options = new DbContextOptionsBuilder<MovixDbContext>()
@@ -46,12 +53,16 @@ public class OutboxProcessorTests
         await db.SaveChangesAsync();
 
         var publisher = new FakeEventPublisher();
-        var processor = new OutboxProcessor(null!, NullLogger<OutboxProcessor>.Instance);
+        var processor = CreateProcessor();
         await processor.ProcessOnceAsync(db, publisher);
 
         var messages = await db.OutboxMessages.ToListAsync();
 
         Assert.All(messages, m => Assert.NotNull(m.ProcessedAtUtc));
+        var published = publisher.GetPublished();
+        Assert.Equal(2, published.Count);
+        Assert.Equal("UserRegistered", published[0].Type);
+        Assert.Equal("TripCreated", published[1].Type);
     }
 
     // F-2 — Mensajes ya procesados no se tocan en el siguiente ciclo
@@ -75,7 +86,7 @@ public class OutboxProcessorTests
         await db.SaveChangesAsync();
 
         var publisher = new FakeEventPublisher();
-        var processor = new OutboxProcessor(null!, NullLogger<OutboxProcessor>.Instance);
+        var processor = CreateProcessor();
         await processor.ProcessOnceAsync(db, publisher);
 
         // ProcessedAtUtc must not be altered
@@ -99,7 +110,7 @@ public class OutboxProcessorTests
         await db.SaveChangesAsync();
 
         var publisher = new FakeEventPublisher();
-        var processor = new OutboxProcessor(null!, NullLogger<OutboxProcessor>.Instance);
+        var processor = CreateProcessor();
         await processor.ProcessOnceAsync(db, publisher);
 
         var published = publisher.GetPublished();
@@ -126,7 +137,7 @@ public class OutboxProcessorTests
         await db.SaveChangesAsync();
 
         var publisher = new FakeEventPublisher();
-        var processor = new OutboxProcessor(null!, NullLogger<OutboxProcessor>.Instance);
+        var processor = CreateProcessor();
         await processor.ProcessOnceAsync(db, publisher);
 
         var published = publisher.GetPublished();
@@ -160,7 +171,7 @@ public class OutboxProcessorTests
         Assert.Equal(5, messageAfterAdd.AttemptCount);
 
         var successPublisher = new FakeEventPublisher();
-        var processor = new OutboxProcessor(null!, NullLogger<OutboxProcessor>.Instance);
+        var processor = CreateProcessor();
         await processor.ProcessOnceAsync(db, successPublisher);
 
         var published = successPublisher.GetPublished();
@@ -168,6 +179,38 @@ public class OutboxProcessorTests
         var messageAfterRun = await db.OutboxMessages.FindAsync(msg.Id);
         Assert.Null(messageAfterRun!.ProcessedAtUtc);
         Assert.Equal(5, messageAfterRun.AttemptCount);
+    }
+
+    [Fact]
+    public async Task ProcessOnceAsync_DoesNotProcessDeadLetter()
+    {
+        var dbName = $"outbox_dl_{Guid.NewGuid()}";
+        await using var db = CreateInMemoryContext(dbName);
+
+        var msg = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Type = "PaymentFailed",
+            Payload = "{}",
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        db.OutboxMessages.Add(msg);
+        await db.SaveChangesAsync();
+
+        var loaded = await db.OutboxMessages.FindAsync(msg.Id);
+        loaded!.MarkAsDeadLetter();
+        await db.SaveChangesAsync();
+
+        var publisher = new FakeEventPublisher();
+        var processor = CreateProcessor();
+        await processor.ProcessOnceAsync(db, publisher);
+
+        var published = publisher.GetPublished();
+        Assert.Empty(published);
+        var after = await db.OutboxMessages.FindAsync(msg.Id);
+        Assert.NotNull(after);
+        Assert.Null(after.ProcessedAtUtc);
+        Assert.True(after.IsDeadLetter);
     }
 
     private sealed class ThrowingEventPublisher : IEventPublisher

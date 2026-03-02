@@ -15,4 +15,5 @@ public record PaymentDto(
     decimal Amount,
     string Currency,
     string Status,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? ClientSecret = null);

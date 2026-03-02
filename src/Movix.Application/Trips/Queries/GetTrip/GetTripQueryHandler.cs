@@ -9,11 +9,16 @@ public class GetTripQueryHandler : IRequestHandler<GetTripQuery, Result<TripDeta
 {
     private readonly ITripRepository _tripRepository;
     private readonly ICurrentUserService _currentUser;
+    private readonly ITenantContext _tenantContext;
 
-    public GetTripQueryHandler(ITripRepository tripRepository, ICurrentUserService currentUser)
+    public GetTripQueryHandler(
+        ITripRepository tripRepository,
+        ICurrentUserService currentUser,
+        ITenantContext tenantContext)
     {
         _tripRepository = tripRepository;
         _currentUser = currentUser;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Result<TripDetailDto>> Handle(GetTripQuery request, CancellationToken cancellationToken)
@@ -25,9 +30,18 @@ public class GetTripQueryHandler : IRequestHandler<GetTripQuery, Result<TripDeta
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
         var isOwner = userId == trip.PassengerId || userId == trip.DriverId;
-        var isAdminOrSupport = role == Role.Admin || role == Role.Support;
+        var isAdminOrSupport = role == Role.Admin || role == Role.Support || role == Role.SuperAdmin;
+
         if (!isOwner && !isAdminOrSupport)
             return Result<TripDetailDto>.Failure("Forbidden", "FORBIDDEN");
+
+        // Admin/Support cross-tenant guard: they can only access trips from their own tenant.
+        // SuperAdmin can cross tenants (they would have set X-Tenant-Id in the middleware if needed).
+        if (isAdminOrSupport && !isOwner && !_tenantContext.IsSuperAdmin)
+        {
+            if (trip.TenantId.HasValue && trip.TenantId != _tenantContext.TenantId)
+                return Result<TripDetailDto>.Failure("Trip not found", "TRIP_NOT_FOUND");
+        }
 
         var dto = new TripDetailDto(
             trip.Id,

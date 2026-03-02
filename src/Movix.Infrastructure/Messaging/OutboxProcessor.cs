@@ -1,14 +1,14 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Movix.Infrastructure.Persistence;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 
 namespace Movix.Infrastructure.Messaging;
 
-public sealed class OutboxProcessor : BackgroundService
+public sealed class OutboxProcessor
 {
     private static readonly ActivitySource ActivitySource = new("Movix.Outbox");
     private static readonly Meter Meter = new("Movix.Outbox");
@@ -17,58 +17,73 @@ public sealed class OutboxProcessor : BackgroundService
     private static readonly Counter<long> AttemptCounter = Meter.CreateCounter<long>("outbox_attempt_total");
     private static readonly Counter<long> DeadLetterCounter = Meter.CreateCounter<long>("outbox_deadletter_total");
 
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(5);
-    private const int BatchSize = 50;
     private const int MaxAttempts = 5;
     private static readonly TimeSpan BaseDelay = TimeSpan.FromSeconds(5);
 
-    private readonly IServiceScopeFactory _scopeFactory;
+    /// <summary>
+    /// SELECT pending rows and lock them so no other worker can take the same rows (multi-pod safe).
+    /// Uses PostgreSQL FOR UPDATE SKIP LOCKED. Must be called within an open transaction.
+    /// </summary>
+    private const string SelectPendingForUpdateSql = """
+        SELECT "Id", "EventId", "CorrelationId", "Type", "Payload", "CreatedAtUtc", "ProcessedAtUtc", "Error", "AttemptCount", "LastAttemptUtc", "IsDeadLetter", "DeadLetteredAtUtc"
+        FROM outbox_messages
+        WHERE "ProcessedAtUtc" IS NULL AND "IsDeadLetter" = false AND "AttemptCount" < 5
+        ORDER BY "CreatedAtUtc"
+        LIMIT {0}
+        FOR UPDATE SKIP LOCKED
+        """;
+
+    private readonly OutboxOptions _options;
     private readonly ILogger<OutboxProcessor> _logger;
 
-    public OutboxProcessor(IServiceScopeFactory scopeFactory, ILogger<OutboxProcessor> logger)
+    public OutboxProcessor(IOptions<OutboxOptions> options, ILogger<OutboxProcessor> logger)
     {
-        _scopeFactory = scopeFactory;
+        _options = options?.Value ?? new OutboxOptions { MaxBatchSize = 50 };
         _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await using var scope = _scopeFactory.CreateAsyncScope();
-                var db = scope.ServiceProvider.GetRequiredService<MovixDbContext>();
-                var publisher = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
-                await ProcessOnceAsync(db, publisher, stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                // Shutdown — exit cleanly
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Outbox processor encountered an unexpected error. Retrying in {Interval}s.", Interval.TotalSeconds);
-            }
-
-            await Task.Delay(Interval, stoppingToken);
-        }
-    }
-
-    // Public for testability — called directly from unit tests with an InMemory context
     public async Task ProcessOnceAsync(MovixDbContext db, IEventPublisher publisher, CancellationToken cancellationToken = default)
     {
-        var messages = await db.OutboxMessages
-            .Where(x => x.ProcessedAtUtc == null && x.AttemptCount < MaxAttempts)
+        var batchSize = _options.MaxBatchSize > 0 ? _options.MaxBatchSize : 50;
+        List<Movix.Domain.Entities.OutboxMessage> messages;
+
+        if (db.Database.IsNpgsql())
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            messages = await db.OutboxMessages
+                .FromSqlRaw(SelectPendingForUpdateSql, batchSize)
+                .ToListAsync(cancellationToken);
+            if (messages.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return;
+            }
+            await ProcessBatchAsync(messages, publisher, DateTime.UtcNow, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return;
+        }
+
+        // Fallback for InMemory / other providers (e.g. unit tests)
+        messages = await db.OutboxMessages
+            .Where(x => x.ProcessedAtUtc == null && !x.IsDeadLetter && x.AttemptCount < MaxAttempts)
             .OrderBy(x => x.CreatedAtUtc)
-            .Take(BatchSize)
+            .Take(batchSize)
             .ToListAsync(cancellationToken);
 
         if (messages.Count == 0)
             return;
 
-        var nowUtc = DateTime.UtcNow;
+        await ProcessBatchAsync(messages, publisher, DateTime.UtcNow, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ProcessBatchAsync(
+        List<Movix.Domain.Entities.OutboxMessage> messages,
+        IEventPublisher publisher,
+        DateTime nowUtc,
+        CancellationToken cancellationToken)
+    {
         foreach (var message in messages)
         {
             var delay = TimeSpan.FromSeconds(BaseDelay.TotalSeconds * Math.Pow(2, message.AttemptCount));
@@ -87,23 +102,25 @@ public sealed class OutboxProcessor : BackgroundService
 
                 message.ProcessedAtUtc = DateTime.UtcNow;
                 ProcessedCounter.Add(1);
+                _logger.LogDebug(
+                    "Outbox processed: EventId={EventId}, OutboxMessageId={OutboxMessageId}, Type={Type}, AttemptCount={AttemptCount}, IsDeadLetter={IsDeadLetter}",
+                    message.EventId, message.Id, message.Type, message.AttemptCount, message.IsDeadLetter);
             }
             catch (Exception ex)
             {
                 AttemptCounter.Add(1);
                 FailedCounter.Add(1);
-                _logger.LogError(
-                    ex,
-                    "Failed to process outbox message {Id} of type {Type}. Will retry next cycle.",
-                    message.Id,
-                    message.Type);
+                _logger.LogError(ex,
+                    "Outbox failed: EventId={EventId}, OutboxMessageId={OutboxMessageId}, Type={Type}, AttemptCount={AttemptCount}, IsDeadLetter={IsDeadLetter}",
+                    message.EventId, message.Id, message.Type, message.AttemptCount, message.IsDeadLetter);
 
                 message.RecordFailedAttempt();
                 if (message.AttemptCount >= MaxAttempts)
+                {
+                    message.MarkAsDeadLetter();
                     DeadLetterCounter.Add(1);
+                }
             }
         }
-
-        await db.SaveChangesAsync(cancellationToken); // Single SaveChanges per batch
     }
 }

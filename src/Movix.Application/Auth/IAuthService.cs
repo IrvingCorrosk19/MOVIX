@@ -5,7 +5,7 @@ namespace Movix.Application.Auth;
 
 public interface IAuthService
 {
-    Task<Result> RegisterAsync(string email, string password, CancellationToken cancellationToken = default);
+    Task<Result> RegisterAsync(string email, string password, Guid tenantId, CancellationToken cancellationToken = default);
     Task<Result<LoginResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken = default);
     Task<Result<LoginResponse>> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
     Task<Result> LogoutAsync(string? refreshToken, CancellationToken cancellationToken = default);

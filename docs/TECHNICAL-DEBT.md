@@ -162,13 +162,11 @@ La creación no es una transición de estado; `FromStatus` debería ser `null` o
 
 ## FUNCIONALIDADES INCOMPLETAS
 
-### F-1 🔴 User registration NO implementado
+### ~~F-1~~ ✅ RESUELTO — User registration
 
-No existe endpoint `POST /api/v1/auth/register` ni equivalente. La única forma de crear usuarios es `DataSeeder` (solo en ambiente `Development` con variables de entorno configuradas).
+**Resuelto:** Endpoint `POST /api/v1/auth/register` implementado. Anti-enumeration (siempre 202 Accepted). BCrypt, Rol Passenger por defecto, OutboxMessage Type="UserRegistered" con payload { userId, email, role, occurredAtUtc }. Validator: contraseña min 8, al menos 1 mayúscula, 1 número. Un solo SaveChanges (User + Outbox). Tests: RegisterTests (Infrastructure): nuevo usuario crea user + outbox; email existente no crea duplicado ni outbox.
 
-**Impacto:** La aplicación es no funcional para nuevos usuarios en producción.
-
-**Entidades afectadas:** User
+**Entidades afectadas:** User, OutboxMessage
 
 ---
 
@@ -309,7 +307,7 @@ La clase `JwtSettings` está al final del archivo `AuthService.cs` en lugar de t
 | ~~R-1~~ | ~~ABAC ausente en transiciones~~ | ✅ Resuelto 2026-03-01 |
 | ~~R-2~~ | ~~Cancel sin control de acceso~~ | ✅ Resuelto 2026-03-01 |
 | ~~B-2~~ | ~~HTTP 400 en lugar de 403~~ | ✅ Resuelto 2026-03-01 (MapError) |
-| F-1 | User registration no implementado | 🔴 Crítico |
+| ~~F-1~~ | ~~User registration no implementado~~ | ✅ Resuelto |
 | F-2 | Outbox inoperativo | 🔴 Crítico |
 | ~~B-1~~ | ~~SaveChanges doble no atómica~~ | ✅ Resuelto 2026-03-01 |
 | ~~R-3~~ | ~~JWT SecretKey en repositorio~~ | ✅ Resuelto 2026-03-01 |

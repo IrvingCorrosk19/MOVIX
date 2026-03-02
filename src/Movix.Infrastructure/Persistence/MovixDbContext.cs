@@ -17,6 +17,9 @@ public class MovixDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<TariffPlan> TariffPlans => Set<TariffPlan>();
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<DriverAvailability> DriverAvailabilities => Set<DriverAvailability>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

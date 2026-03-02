@@ -7,6 +7,7 @@ public class Driver : IAuditableEntity, IConcurrencyEntity
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
+    public Guid TenantId { get; set; }
     public DriverStatus Status { get; set; }
     public bool IsVerified { get; set; }
 

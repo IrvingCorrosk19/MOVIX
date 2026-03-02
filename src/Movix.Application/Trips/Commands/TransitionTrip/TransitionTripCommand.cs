@@ -5,4 +5,9 @@ using Movix.Domain.Enums;
 
 namespace Movix.Application.Trips.Commands.TransitionTrip;
 
-public record TransitionTripCommand(Guid TripId, TripStatus TargetStatus, string? Reason = null) : IRequest<Result<TripDto>>;
+public record TransitionTripCommand(
+    Guid TripId,
+    TripStatus TargetStatus,
+    string? Reason = null,
+    decimal? DistanceKm = null,
+    decimal? DurationMinutes = null) : IRequest<Result<TripDto>>;

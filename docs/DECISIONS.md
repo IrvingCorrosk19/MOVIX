@@ -44,9 +44,9 @@
 
 **Contexto:** Necesidad de publicar eventos o mensajes a otros sistemas (notificaciones, analytics) sin perder consistencia con la transacción de negocio.
 
-**Decisión:** Implementar tabla `outbox_messages` (Type, Payload, CreatedAtUtc, ProcessedAtUtc, Error). Los handlers que deban emitir eventos escriben en esta tabla en la misma transacción que el cambio de negocio. Un proceso en background (pendiente de implementación) lee mensajes no procesados y los publica (por ejemplo a un bus o cola), actualizando `ProcessedAtUtc` o `Error`.
+**Decisión:** Implementar tabla `outbox_messages` (Type, Payload, CreatedAtUtc, ProcessedAtUtc, Error, AttemptCount, IsDeadLetter, etc.). Los handlers que deban emitir eventos escriben en esta tabla en la misma transacción que el cambio de negocio. Un worker en background (`OutboxHostedService`, `OutboxProcessor`) lee mensajes no procesados (FIFO, sin dead-letter) y los publica vía `IEventPublisher`, actualizando `ProcessedAtUtc` o reintentando con backoff; tras `MaxAttempts` se marca dead-letter. Configuración: `Outbox:Enabled`, `Outbox:PollIntervalMs`, `Outbox:MaxBatchSize`, `Outbox:ErrorBackoffMs`.
 
-**Consecuencias:** Garantía at-least-once y consistencia con la base de datos. La implementación del worker de outbox queda como siguiente paso.
+**Consecuencias:** Garantía at-least-once y consistencia con la base de datos. El worker ya está implementado; en Tests `Enabled` puede ser false para no ejecutarlo automáticamente.
 
 ---
 

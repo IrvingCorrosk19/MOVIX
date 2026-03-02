@@ -20,14 +20,17 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Register a new passenger account.
-    /// Always returns 202 Accepted to prevent email enumeration.
+    /// Register a new passenger account for a given tenant.
+    /// Returns 202 Accepted on success (email enumeration prevention).
+    /// Returns 400 if tenant is invalid or inactive.
     /// </summary>
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        await _mediator.Send(new RegisterCommand(request.Email, request.Password), ct);
+        var result = await _mediator.Send(new RegisterCommand(request.Email, request.Password, request.TenantId), ct);
+        if (!result.Succeeded)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Accepted();
     }
 
@@ -59,7 +62,7 @@ public class AuthController : ControllerBase
     }
 }
 
-public record RegisterRequest(string Email, string Password);
+public record RegisterRequest(string Email, string Password, Guid TenantId);
 public record LoginRequest(string Email, string Password);
 public record RefreshRequest(string RefreshToken);
 public record LogoutRequest(string? RefreshToken);

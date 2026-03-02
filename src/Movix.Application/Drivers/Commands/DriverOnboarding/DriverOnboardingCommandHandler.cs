@@ -9,17 +9,20 @@ namespace Movix.Application.Drivers.Commands.DriverOnboarding;
 public class DriverOnboardingCommandHandler : IRequestHandler<DriverOnboardingCommand, Result<DriverOnboardingResponse>>
 {
     private readonly IDriverRepository _driverRepository;
+    private readonly IDriverAvailabilityRepository _availabilityRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly IDateTimeService _dateTime;
     private readonly IUnitOfWork _uow;
 
     public DriverOnboardingCommandHandler(
         IDriverRepository driverRepository,
+        IDriverAvailabilityRepository availabilityRepository,
         ICurrentUserService currentUser,
         IDateTimeService dateTime,
         IUnitOfWork uow)
     {
         _driverRepository = driverRepository;
+        _availabilityRepository = availabilityRepository;
         _currentUser = currentUser;
         _dateTime = dateTime;
         _uow = uow;
@@ -68,6 +71,14 @@ public class DriverOnboardingCommandHandler : IRequestHandler<DriverOnboardingCo
         }
 
         await _driverRepository.AddAsync(driver, cancellationToken);
+        await _availabilityRepository.AddAsync(new DriverAvailability
+        {
+            DriverId = driver.Id,
+            IsOnline = false,
+            CurrentTripId = null,
+            UpdatedAtUtc = now,
+            RowVersion = new byte[] { 1 }
+        }, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
         return Result<DriverOnboardingResponse>.Success(new DriverOnboardingResponse(driver.Id, driver.IsVerified));

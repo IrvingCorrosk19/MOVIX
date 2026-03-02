@@ -29,9 +29,17 @@ public class AuthService : IAuthService
         _audience = _jwtSettings.Audience ?? "movix";
     }
 
-    public async Task<Result> RegisterAsync(string email, string password, CancellationToken cancellationToken = default)
+    public async Task<Result> RegisterAsync(string email, string password, Guid tenantId, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
+
+        // Verify tenant exists and is active
+        var tenant = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+        if (tenant == null)
+            return Result.Failure("Tenant not found", "TENANT_NOT_FOUND");
+        if (!tenant.IsActive)
+            return Result.Failure("Tenant is inactive", "TENANT_INACTIVE");
 
         // Anti-enumeration: never reveal whether the email already exists
         var exists = await _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
@@ -43,13 +51,14 @@ public class AuthService : IAuthService
         var user = new User
         {
             Id = userId,
+            TenantId = tenantId,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = Role.Passenger,
             IsActive = true,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            RowVersion = Array.Empty<byte>()
+            RowVersion = new byte[] { 1 }
         };
 
         var payload = JsonSerializer.Serialize(new
@@ -167,7 +176,8 @@ public class AuthService : IAuthService
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, user.Role.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("tenant_id", user.TenantId.ToString())
         };
 
         var token = new JwtSecurityToken(

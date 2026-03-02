@@ -49,6 +49,9 @@ public class AcceptTripCommandHandler : IRequestHandler<AcceptTripCommand, Resul
         if (driver == null)
             return Result<TripDto>.Failure("Driver not found", "DRIVER_NOT_FOUND");
 
+        if (!trip.TenantId.HasValue || trip.TenantId.Value != driver.TenantId)
+            return Result<TripDto>.Failure("Forbidden", "FORBIDDEN");
+
         var vehicle = driver.Vehicles.FirstOrDefault(v => v.Id == request.VehicleId);
         if (vehicle == null)
             return Result<TripDto>.Failure("Vehicle not found", "VEHICLE_NOT_FOUND");

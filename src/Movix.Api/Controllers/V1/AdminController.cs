@@ -1,8 +1,13 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Movix.Application.Admin.Commands.ReprocessDeadLetter;
 using Movix.Application.Admin.Queries.GetDrivers;
 using Movix.Application.Admin.Queries.GetTrips;
+using Movix.Application.Common.Exceptions;
+using Movix.Application.Common.Models;
+using Movix.Application.Tenants.Commands.CreateTenant;
+using Movix.Application.Tenants.Queries.GetTenants;
 
 namespace Movix.Api.Controllers.V1;
 
@@ -16,6 +21,24 @@ public class AdminController : ControllerBase
     public AdminController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpPost("tenants")]
+    public async Task<IActionResult> CreateTenant([FromBody] CreateTenantRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new CreateTenantCommand(request.Name), ct);
+        if (!result.Succeeded)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Data);
+    }
+
+    [HttpGet("tenants")]
+    public async Task<IActionResult> GetTenants(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetTenantsQuery(), ct);
+        if (!result.Succeeded)
+            return BadRequest(new { error = result.Error });
+        return Ok(result.Data);
     }
 
     [HttpGet("trips")]
@@ -35,4 +58,24 @@ public class AdminController : ControllerBase
             return BadRequest(new { error = result.Error });
         return Ok(result.Data);
     }
+
+    [HttpPost("outbox/{id:guid}/reprocess")]
+    public async Task<IActionResult> ReprocessDeadLetter(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await _mediator.Send(new ReprocessDeadLetterCommand(id), ct);
+            return NoContent();
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }
+
+public record CreateTenantRequest(string Name);

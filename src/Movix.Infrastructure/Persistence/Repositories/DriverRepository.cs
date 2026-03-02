@@ -1,16 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using Movix.Application.Common.Interfaces;
 using Movix.Application.Drivers;
 using Movix.Domain.Entities;
+using Movix.Infrastructure.Persistence.Extensions;
 
 namespace Movix.Infrastructure.Persistence.Repositories;
 
 public class DriverRepository : IDriverRepository
 {
     private readonly MovixDbContext _db;
+    private readonly ITenantContext _tenantContext;
 
-    public DriverRepository(MovixDbContext db)
+    public DriverRepository(MovixDbContext db, ITenantContext tenantContext)
     {
         _db = db;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Driver?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -43,11 +47,23 @@ public class DriverRepository : IDriverRepository
         return Task.CompletedTask;
     }
 
-    public async Task<(IReadOnlyList<Driver> Drivers, int TotalCount)> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Returns paged drivers scoped to the caller's tenant (auto-applied via ITenantContext).
+    /// SuperAdmin bypasses the filter and sees all drivers.
+    /// </summary>
+    public async Task<(IReadOnlyList<Driver> Drivers, int TotalCount)> GetPagedAsync(
+        int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var query = _db.Drivers.OrderByDescending(d => d.CreatedAtUtc);
+        var query = _db.Drivers
+            .ApplyTenantScope(_tenantContext)
+            .OrderByDescending(d => d.CreatedAtUtc);
+
         var total = await query.CountAsync(cancellationToken);
-        var drivers = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        var drivers = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
         return (drivers, total);
     }
 }

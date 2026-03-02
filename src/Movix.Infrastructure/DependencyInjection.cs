@@ -6,11 +6,17 @@ using Movix.Application.Auth;
 using Movix.Application.Trips;
 using Movix.Application.Drivers;
 using Movix.Application.Payments;
+using Movix.Application.Pricing;
 using Movix.Application.Admin;
+using Movix.Application.Outbox;
+using Movix.Application.Tenants;
 using Movix.Infrastructure.Auth;
 using Movix.Infrastructure.Persistence;
 using Movix.Infrastructure.Persistence.Interceptors;
+using Movix.Infrastructure.Messaging;
 using Movix.Infrastructure.Persistence.Repositories;
+using Microsoft.Extensions.Options;
+using Movix.Infrastructure.Payments;
 using Movix.Infrastructure.Services;
 using StackExchange.Redis;
 
@@ -52,7 +58,25 @@ public static class DependencyInjection
         services.AddScoped<IDriverLocationRepository, DriverLocationRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IAdminTripRepository, AdminTripRepository>();
+        services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
+        services.AddScoped<IFareCalculator, FareCalculator>();
+        services.AddScoped<ITariffPlanRepository, TariffPlanRepository>();
+        services.AddScoped<IDriverAvailabilityRepository, DriverAvailabilityRepository>();
+        services.AddScoped<ITenantRepository, TenantRepository>();
+        services.Configure<StripeOptions>(configuration.GetSection(StripeOptions.SectionName));
+        services.Configure<PaymentsOptions>(configuration.GetSection(PaymentsOptions.SectionName));
+        services.AddScoped<StripePaymentGateway>();
+        services.AddScoped<SimulationPaymentGateway>();
+        services.AddScoped<IPaymentGateway>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<PaymentsOptions>>().Value;
+            return string.Equals(options.Mode, "Simulation", StringComparison.OrdinalIgnoreCase)
+                ? sp.GetRequiredService<SimulationPaymentGateway>()
+                : sp.GetRequiredService<StripePaymentGateway>();
+        });
         services.AddScoped<DataSeeder>();
+        services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
+        services.AddScoped<OutboxProcessor>();
 
         return services;
     }
