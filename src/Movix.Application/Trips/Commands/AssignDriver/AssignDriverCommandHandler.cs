@@ -106,7 +106,7 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
         }
         catch (ConcurrencyException)
         {
-            return Result<TripDto>.Failure("No drivers available", "NO_DRIVERS_AVAILABLE");
+            return Result<TripDto>.Failure("Concurrent modification", "CONFLICT");
         }
 
         await _audit.LogAsync("AssignDriver", "Trip", trip.Id, new { driverId = availability.DriverId }, cancellationToken);
