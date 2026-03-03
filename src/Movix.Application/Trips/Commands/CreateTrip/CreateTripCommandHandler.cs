@@ -75,7 +75,9 @@ public class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Resul
             RowVersion = new byte[] { 1 }
         };
 
-        tripEntity.StatusHistory.Add(new TripStatusHistory
+        await _tripRepository.AddAsync(tripEntity, cancellationToken);
+
+        var history = new TripStatusHistory
         {
             Id = Guid.NewGuid(),
             TripId = tripEntity.Id,
@@ -85,9 +87,8 @@ public class CreateTripCommandHandler : IRequestHandler<CreateTripCommand, Resul
             UpdatedAtUtc = now,
             CreatedBy = userId.ToString(),
             UpdatedBy = userId.ToString()
-        });
-
-        await _tripRepository.AddAsync(tripEntity, cancellationToken);
+        };
+        await _tripRepository.AddStatusHistoryAsync(history, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await _idempotencyService.StoreAsync(request.IdempotencyKey, tripEntity.Id.ToString(), cancellationToken);
 

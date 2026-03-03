@@ -75,7 +75,7 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
         trip.UpdatedAtUtc = now;
         trip.UpdatedBy = userId;
 
-        trip.StatusHistory.Add(new TripStatusHistory
+        var history = new TripStatusHistory
         {
             Id = Guid.NewGuid(),
             TripId = trip.Id,
@@ -85,7 +85,8 @@ public class AssignDriverCommandHandler : IRequestHandler<AssignDriverCommand, R
             UpdatedAtUtc = now,
             CreatedBy = userId,
             UpdatedBy = userId
-        });
+        };
+        await _tripRepository.AddStatusHistoryAsync(history, cancellationToken);
 
         availability.CurrentTripId = trip.Id;
         availability.UpdatedAtUtc = now;

@@ -35,6 +35,19 @@ public class TripRepository : ITripRepository
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// BUG-002 fix: Add new status history via DbSet so EF marks the entity as Added (INSERT).
+    /// Adding via trip.StatusHistory.Add() when the trip was loaded with Include(StatusHistory)
+    /// causes EF change tracker to treat the new row as Modified, generating UPDATE instead of
+    /// INSERT; 0 rows affected triggers DbUpdateConcurrencyException and 409. Explicit Add
+    /// to TripStatusHistories ensures INSERT semantics in the same UnitOfWork as the trip update.
+    /// </summary>
+    public Task AddStatusHistoryAsync(TripStatusHistory history, CancellationToken cancellationToken = default)
+    {
+        _db.TripStatusHistories.Add(history);
+        return Task.CompletedTask;
+    }
+
     public async Task<IReadOnlyList<Trip>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
         return await _db.Trips

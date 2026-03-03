@@ -1,6 +1,7 @@
 using MediatR;
 using Movix.Application.Common.Interfaces;
 using Movix.Application.Common.Models;
+using Movix.Application.Drivers;
 using Movix.Domain.Enums;
 
 namespace Movix.Application.Trips.Queries.GetTrip;
@@ -8,15 +9,18 @@ namespace Movix.Application.Trips.Queries.GetTrip;
 public class GetTripQueryHandler : IRequestHandler<GetTripQuery, Result<TripDetailDto>>
 {
     private readonly ITripRepository _tripRepository;
+    private readonly IDriverRepository _driverRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly ITenantContext _tenantContext;
 
     public GetTripQueryHandler(
         ITripRepository tripRepository,
+        IDriverRepository driverRepository,
         ICurrentUserService currentUser,
         ITenantContext tenantContext)
     {
         _tripRepository = tripRepository;
+        _driverRepository = driverRepository;
         _currentUser = currentUser;
         _tenantContext = tenantContext;
     }
@@ -29,7 +33,10 @@ public class GetTripQueryHandler : IRequestHandler<GetTripQuery, Result<TripDeta
 
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
-        var isOwner = userId == trip.PassengerId || userId == trip.DriverId;
+        Guid? currentUserDriverId = null;
+        if (userId.HasValue)
+            currentUserDriverId = await _driverRepository.GetDriverIdByUserIdAsync(userId.Value, cancellationToken);
+        var isOwner = userId == trip.PassengerId || (currentUserDriverId.HasValue && currentUserDriverId == trip.DriverId);
         var isAdminOrSupport = role == Role.Admin || role == Role.Support || role == Role.SuperAdmin;
 
         if (!isOwner && !isAdminOrSupport)

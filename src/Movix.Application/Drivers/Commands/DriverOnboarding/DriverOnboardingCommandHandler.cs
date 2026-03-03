@@ -11,6 +11,7 @@ public class DriverOnboardingCommandHandler : IRequestHandler<DriverOnboardingCo
     private readonly IDriverRepository _driverRepository;
     private readonly IDriverAvailabilityRepository _availabilityRepository;
     private readonly ICurrentUserService _currentUser;
+    private readonly ITenantContext _tenantContext;
     private readonly IDateTimeService _dateTime;
     private readonly IUnitOfWork _uow;
 
@@ -18,12 +19,14 @@ public class DriverOnboardingCommandHandler : IRequestHandler<DriverOnboardingCo
         IDriverRepository driverRepository,
         IDriverAvailabilityRepository availabilityRepository,
         ICurrentUserService currentUser,
+        ITenantContext tenantContext,
         IDateTimeService dateTime,
         IUnitOfWork uow)
     {
         _driverRepository = driverRepository;
         _availabilityRepository = availabilityRepository;
         _currentUser = currentUser;
+        _tenantContext = tenantContext;
         _dateTime = dateTime;
         _uow = uow;
     }
@@ -34,6 +37,10 @@ public class DriverOnboardingCommandHandler : IRequestHandler<DriverOnboardingCo
         if (!userId.HasValue)
             return Result<DriverOnboardingResponse>.Failure("Unauthorized", "UNAUTHORIZED");
 
+        var tenantId = _tenantContext.TenantId;
+        if (!tenantId.HasValue)
+            return Result<DriverOnboardingResponse>.Failure("Tenant is required", "TENANT_REQUIRED");
+
         var existing = await _driverRepository.GetByUserIdAsync(userId.Value, cancellationToken);
         if (existing != null)
             return Result<DriverOnboardingResponse>.Failure("Driver already registered", "DRIVER_EXISTS");
@@ -43,6 +50,7 @@ public class DriverOnboardingCommandHandler : IRequestHandler<DriverOnboardingCo
         {
             Id = Guid.NewGuid(),
             UserId = userId.Value,
+            TenantId = tenantId.Value,
             Status = Movix.Domain.Enums.DriverStatus.Offline,
             IsVerified = false,
             CreatedAtUtc = now,

@@ -68,7 +68,7 @@ public class AcceptTripCommandHandler : IRequestHandler<AcceptTripCommand, Resul
         trip.UpdatedAtUtc = now;
         trip.UpdatedBy = userId.ToString();
 
-        trip.StatusHistory.Add(new TripStatusHistory
+        var history = new TripStatusHistory
         {
             Id = Guid.NewGuid(),
             TripId = trip.Id,
@@ -78,7 +78,8 @@ public class AcceptTripCommandHandler : IRequestHandler<AcceptTripCommand, Resul
             UpdatedAtUtc = now,
             CreatedBy = userId.ToString(),
             UpdatedBy = userId.ToString()
-        });
+        };
+        await _tripRepository.AddStatusHistoryAsync(history, cancellationToken);
 
         try
         {

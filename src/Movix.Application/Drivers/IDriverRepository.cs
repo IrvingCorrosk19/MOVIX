@@ -4,6 +4,7 @@ namespace Movix.Application.Drivers;
 
 public interface IDriverRepository
 {
+    Task<Guid?> GetDriverIdByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Driver?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Driver?> GetByUserIdWithVehiclesAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Driver?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);

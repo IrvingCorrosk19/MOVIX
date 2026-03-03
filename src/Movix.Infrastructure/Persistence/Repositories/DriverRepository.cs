@@ -17,6 +17,14 @@ public class DriverRepository : IDriverRepository
         _tenantContext = tenantContext;
     }
 
+    public async Task<Guid?> GetDriverIdByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _db.Drivers
+            .Where(d => d.UserId == userId)
+            .Select(d => (Guid?)d.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<Driver?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _db.Drivers

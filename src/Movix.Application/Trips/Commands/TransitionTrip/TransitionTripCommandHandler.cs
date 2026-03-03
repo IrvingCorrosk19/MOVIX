@@ -15,6 +15,7 @@ namespace Movix.Application.Trips.Commands.TransitionTrip;
 public class TransitionTripCommandHandler : IRequestHandler<TransitionTripCommand, Result<TripDto>>
 {
     private readonly ITripRepository _tripRepository;
+    private readonly IDriverRepository _driverRepository;
     private readonly ITariffPlanRepository _tariffRepository;
     private readonly IFareCalculator _fareCalculator;
     private readonly IDriverAvailabilityRepository _availabilityRepository;
@@ -26,6 +27,7 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
 
     public TransitionTripCommandHandler(
         ITripRepository tripRepository,
+        IDriverRepository driverRepository,
         ITariffPlanRepository tariffRepository,
         IFareCalculator fareCalculator,
         IDriverAvailabilityRepository availabilityRepository,
@@ -36,6 +38,7 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
         IUnitOfWork uow)
     {
         _tripRepository = tripRepository;
+        _driverRepository = driverRepository;
         _tariffRepository = tariffRepository;
         _fareCalculator = fareCalculator;
         _availabilityRepository = availabilityRepository;
@@ -62,21 +65,31 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
         if (!TripStateMachine.CanTransition(trip.Status, request.TargetStatus))
             return Result<TripDto>.Failure($"Invalid transition from {trip.Status} to {request.TargetStatus}", "INVALID_TRANSITION");
 
-        // ABAC — R-1 / R-2
+        // ABAC — R-1 / R-2. Compare Driver entity Id (trip.DriverId) with the current user's DriverId, not User.Id.
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
         var isAdminOrSupport = role == Role.Admin || role == Role.Support;
+        Guid? currentUserDriverId = null;
+        if (userId.HasValue)
+            currentUserDriverId = await _driverRepository.GetDriverIdByUserIdAsync(userId.Value, cancellationToken);
 
         if (request.TargetStatus is TripStatus.DriverArrived or TripStatus.InProgress or TripStatus.Completed)
         {
             if (trip.DriverId == null)
                 return Result<TripDto>.Failure("No driver assigned to this trip", "DRIVER_NOT_ASSIGNED");
-            if (!isAdminOrSupport && userId != trip.DriverId)
-                return Result<TripDto>.Failure("Forbidden", "FORBIDDEN");
+            if (!isAdminOrSupport)
+            {
+                if (!currentUserDriverId.HasValue)
+                    return Result<TripDto>.Failure("Driver not found", "DRIVER_NOT_FOUND");
+                if (currentUserDriverId.Value != trip.DriverId)
+                    return Result<TripDto>.Failure("Forbidden", "FORBIDDEN");
+            }
         }
         else if (request.TargetStatus == TripStatus.Cancelled)
         {
-            if (!isAdminOrSupport && userId != trip.PassengerId && userId != trip.DriverId)
+            var isPassenger = userId.HasValue && userId.Value == trip.PassengerId;
+            var isTripDriver = currentUserDriverId.HasValue && currentUserDriverId.Value == trip.DriverId;
+            if (!isAdminOrSupport && !isPassenger && !isTripDriver)
                 return Result<TripDto>.Failure("Forbidden", "FORBIDDEN");
         }
 
@@ -88,7 +101,7 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
         trip.UpdatedAtUtc = now;
         trip.UpdatedBy = userIdForAudit.ToString();
 
-        trip.StatusHistory.Add(new TripStatusHistory
+        var history = new TripStatusHistory
         {
             Id = Guid.NewGuid(),
             TripId = trip.Id,
@@ -99,7 +112,8 @@ public class TransitionTripCommandHandler : IRequestHandler<TransitionTripComman
             UpdatedAtUtc = now,
             CreatedBy = userIdForAudit.ToString(),
             UpdatedBy = userIdForAudit.ToString()
-        });
+        };
+        await _tripRepository.AddStatusHistoryAsync(history, cancellationToken);
 
         if (request.TargetStatus == TripStatus.Completed && request.DistanceKm.HasValue && request.DurationMinutes.HasValue)
         {
