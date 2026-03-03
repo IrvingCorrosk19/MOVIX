@@ -18,7 +18,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(x => x.UpdatedAtUtc).HasColumnName("UpdatedAtUtc");
         b.Property(x => x.CreatedBy).HasMaxLength(100);
         b.Property(x => x.UpdatedBy).HasMaxLength(100);
-        b.Property(x => x.RowVersion).IsRowVersion();
+        b.Property(x => x.RowVersion)
+            .IsConcurrencyToken()
+            .HasColumnType("bytea")
+            .HasDefaultValueSql("gen_random_bytes(8)");
         b.HasIndex(x => x.Email).IsUnique();
         b.HasIndex(x => x.TenantId);
         b.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId)

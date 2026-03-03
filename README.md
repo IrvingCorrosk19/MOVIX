@@ -31,44 +31,52 @@ docker-compose up -d --build
 
 ## Ejecución en local (sin Docker)
 
-1. Tener PostgreSQL con PostGIS y Redis en ejecución (por ejemplo en `localhost:5432` y `localhost:6379`).
+Requisitos: PostgreSQL con PostGIS y Redis en ejecución (p. ej. `localhost:5432` y `localhost:6379`). La API usa la base de datos **movix** en desarrollo cuando existe `appsettings.Development.local.json`.
 
-2. Crear la base de datos:
+**Guía detallada:** [docs/setup/Local-API-PostGIS.md](docs/setup/Local-API-PostGIS.md)
 
-```bash
-createdb -U postgres movix_core
-psql -U postgres -d movix_core -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+### Opción rápida — script PowerShell
+
+Desde la raíz del repo:
+
+```powershell
+# Arrancar API (JWT y entorno Development se configuran en el script)
+.\scripts\run-api-local.ps1
+
+# Aplicar migraciones y luego arrancar
+.\scripts\run-api-local.ps1 -Migrations
 ```
 
-3. Configurar `appsettings.json` (o `appsettings.Development.json`) con la cadena de conexión y Redis:
+El script exige `Jwt__SecretKey` de al menos 32 caracteres (por defecto usa una clave de desarrollo). Para usar tu propia clave: `.\scripts\run-api-local.ps1 -JwtSecret "tu-clave-minimo-32-chars"`.
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=movix_core;Username=movix;Password=movix_secret;Include Error Detail=true",
-    "Redis": "localhost:6379"
-  },
-  "Jwt": {
-    "SecretKey": "CLAVE_MINIMO_32_CARACTERES_PARA_HS256"
-  }
-}
-```
+### Pasos manuales
 
-4. Aplicar migraciones (si no se aplican al inicio):
+1. Crear la base de datos y PostGIS:
 
-```bash
-cd src/Movix.Api
-dotnet ef database update --project ../Movix.Infrastructure/Movix.Infrastructure.csproj
-```
+   ```bash
+   createdb -U postgres movix
+   psql -U postgres -d movix -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+   ```
 
-5. Ejecutar la API:
+2. Configurar conexión: crear o editar `src/Movix.Api/appsettings.Development.local.json` con `ConnectionStrings:DefaultConnection` apuntando a `Database=movix` y `Jwt:SecretKey` (≥32 caracteres). Ver plantilla en [docs/local-db-connection.template.md](docs/local-db-connection.template.md).
 
-```bash
-cd src/Movix.Api
-dotnet run
-```
+3. Aplicar migraciones (entorno Development para usar la conexión local):
 
-La API escuchará en el puerto configurado (por defecto según `launchSettings.json` o `ASPNETCORE_URLS`).
+   ```powershell
+   cd src/Movix.Api
+   $env:ASPNETCORE_ENVIRONMENT = "Development"
+   dotnet ef database update --project ../Movix.Infrastructure/Movix.Infrastructure.csproj --startup-project .
+   ```
+
+4. Ejecutar la API (JWT por variable de entorno):
+
+   ```powershell
+   $env:Jwt__SecretKey = "clave-de-desarrollo-local-minimo-32-caracteres"
+   $env:ASPNETCORE_ENVIRONMENT = "Development"
+   dotnet run --project src/Movix.Api/Movix.Api.csproj
+   ```
+
+La API escuchará en el puerto configurado (p. ej. según `launchSettings.json`). Health checks incluyen **postgis** (`SELECT PostGIS_Version()`); ver `/health` para comprobar que PostGIS está activo.
 
 ## Aplicar migraciones en Docker
 

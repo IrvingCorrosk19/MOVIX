@@ -11,7 +11,10 @@ public class DriverAvailabilityConfiguration : IEntityTypeConfiguration<DriverAv
         b.ToTable("driver_availability");
         b.HasKey(x => x.DriverId);
         b.Property(x => x.UpdatedAtUtc);
-        b.Property(x => x.RowVersion).IsRowVersion();
+        b.Property(x => x.RowVersion)
+            .IsConcurrencyToken()
+            .HasColumnType("bytea")
+            .HasDefaultValueSql("gen_random_bytes(8)");
         b.HasOne(x => x.Driver).WithOne().HasForeignKey<DriverAvailability>(x => x.DriverId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(x => new { x.IsOnline, x.CurrentTripId });
     }

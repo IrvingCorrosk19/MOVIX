@@ -50,18 +50,14 @@ public class DataSeeder
         if (exists) return;
 
         var now = DateTime.UtcNow;
-        db.Tenants.Add(new Tenant
-        {
-            Id = DevTenantId,
-            Name = "Dev Tenant",
-            IsActive = true,
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now,
-            RowVersion = new byte[] { 1 }
-        });
-
-        // Flush the tenant insert so FK constraints are satisfied for users/drivers added next.
-        await db.SaveChangesAsync(ct);
+        // Insert via raw SQL so RowVersion is sent explicitly (EF with IsRowVersion() may omit it on INSERT in PostgreSQL).
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO tenants ("Id", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "RowVersion")
+            VALUES ({0}, {1}, {2}, {3}, {4}, {5})
+            """,
+            new object[] { DevTenantId, "Dev Tenant", true, now, now, new byte[] { 1 } },
+            ct);
     }
 
     private static async Task EnsureAdminUserAsync(MovixDbContext db, string email, string password, CancellationToken ct)

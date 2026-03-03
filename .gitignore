@@ -53,3 +53,7 @@ Thumbs.db
 # Publish
 publish/
 *.pubxml
+
+# Cleanup / local
+_trash/
+logs/*.log

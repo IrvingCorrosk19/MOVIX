@@ -13,6 +13,8 @@ public class MovixDbContextFactory : IDesignTimeDbContextFactory<MovixDbContext>
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddJsonFile("appsettings.Development.local.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<MovixDbContext>();

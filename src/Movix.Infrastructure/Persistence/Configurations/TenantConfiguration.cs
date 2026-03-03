@@ -13,7 +13,10 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         b.Property(x => x.Name).HasMaxLength(200).IsRequired();
         b.Property(x => x.CreatedAtUtc);
         b.Property(x => x.UpdatedAtUtc);
-        b.Property(x => x.RowVersion).IsRowVersion();
+        b.Property(x => x.RowVersion)
+            .IsConcurrencyToken()
+            .HasColumnType("bytea")
+            .HasDefaultValueSql("gen_random_bytes(8)");
         b.HasIndex(x => x.IsActive);
     }
 }

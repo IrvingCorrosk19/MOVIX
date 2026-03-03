@@ -1,5 +1,7 @@
 using System.Text;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -15,6 +17,7 @@ using Movix.Infrastructure.Health;
 using Movix.Infrastructure.Messaging;
 using Movix.Infrastructure.Persistence;
 using Movix.Infrastructure.Payments;
+using Microsoft.Extensions.Options;
 using Serilog;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -93,7 +96,8 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "postgres", tags: new[] { "db", "ready" })
     .AddRedis(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379", name: "redis", tags: new[] { "redis", "ready" })
-    .AddCheck<OutboxHealthCheck>("outbox");
+    .AddCheck<OutboxHealthCheck>("outbox")
+    .AddCheck<PostGisHealthCheck>("postgis", tags: new[] { "db", "ready" });
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r.AddService("movix-api"))
@@ -120,7 +124,35 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<JwtSettings>>().Value);
+
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+        if (exception is ValidationException validationException)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                errors = validationException.Errors.Select(e => new
+                {
+                    field = e.PropertyName,
+                    message = e.ErrorMessage
+                })
+            });
+            return;
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    });
+});
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
@@ -135,12 +167,46 @@ app.UseRateLimiter();
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = _ => true,
-    ResponseWriter = (context, report) => context.Response.WriteAsJsonAsync(report)
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.StatusCode = report.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            ? StatusCodes.Status200OK
+            : StatusCodes.Status503ServiceUnavailable;
+        var response = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                error = e.Value.Exception?.Message
+            })
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    }
 });
 app.MapHealthChecks("/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready"),
-    ResponseWriter = (context, report) => context.Response.WriteAsJsonAsync(report)
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.StatusCode = report.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            ? StatusCodes.Status200OK
+            : StatusCodes.Status503ServiceUnavailable;
+        var response = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                error = e.Value.Exception?.Message
+            })
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    }
 });
 
 // Authentication must run before TenantMiddleware so that context.User is populated
