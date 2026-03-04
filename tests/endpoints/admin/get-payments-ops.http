@@ -1,0 +1,16 @@
+### GET /api/v1/admin/ops/payments
+### Descripción: Listar pagos con filtros. Requiere rol Admin o Support.
+### Headers requeridos: Authorization: Bearer <token>
+### Query: tenantId?, status?, from?, to?, tripId?
+### Códigos: 200 OK (lista PaymentOpsDto)
+
+# @name getPaymentsOps
+GET {{BASE_URL}}/api/v1/admin/ops/payments?tenantId={{TENANT_ID}}
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (200):
+# [
+#   { "id", "tenantId", "tripId", "payerId", "amount", "currency", "status", "externalPaymentId", "createdAtUtc" }
+# ]
+
+### Response error: 401 si no autenticado

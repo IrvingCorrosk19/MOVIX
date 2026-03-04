@@ -1,0 +1,13 @@
+### POST /api/v1/admin/tariffs/{id}/activate
+### Descripción: Activar plan de tarifa. Requiere Admin/Support + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TariffPlanDto) | 404 | 403 | 400 (TARIFF_PRIORITY_CONFLICT, etc.)
+
+# @name activateTariff
+POST {{BASE_URL}}/api/v1/admin/tariffs/{{TARIFF_ID}}/activate
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+
+### Response esperado (200): TariffPlanDto
+### Response error (404): TARIFF_NOT_FOUND
+### Response error (400): TARIFF_PRIORITY_CONFLICT u otros

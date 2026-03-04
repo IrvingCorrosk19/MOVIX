@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs cat)",
+      "Bash(ls /tmp/*.sh)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Proyectos\\\\RiderFlow\\\\tests\\\\qa_workaround_run.ps1\")"
+    ]
+  }
+}

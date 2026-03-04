@@ -1,0 +1,16 @@
+### POST /api/v1/trips/{id}/accept
+### Descripción: Conductor acepta el viaje. Requiere rol Driver o Admin.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK (TripDto) | 403 | 404 | 422 (invalid transition, etc.)
+
+# @name acceptTrip
+POST {{BASE_URL}}/api/v1/trips/{{TRIP_ID}}/accept
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "vehicleId": "{{VEHICLE_ID}}"
+}
+
+### Response esperado (200): TripDto
+### Response error (422): DRIVER_NOT_ASSIGNED, INVALID_TRANSITION, etc.

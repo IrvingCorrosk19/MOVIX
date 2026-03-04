@@ -1,0 +1,17 @@
+### POST /api/v1/trips/{id}/cancel
+### Descripción: Cancelar viaje. Requiere JWT (pasajero, conductor o admin) + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TripDto) | 403 | 404 | 422
+
+# @name cancelTrip
+POST {{BASE_URL}}/api/v1/trips/{{TRIP_ID}}/cancel
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+Content-Type: application/json
+
+{
+  "reason": "Cancelado por pasajero"
+}
+
+### Response esperado (200): TripDto
+### Response error (422): INVALID_TRANSITION, etc.

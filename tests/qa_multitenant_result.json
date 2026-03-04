@@ -1,0 +1,8 @@
+﻿{
+    "T1":  "PASS (200 correct)",
+    "Timestamp":  "2026-03-03 20:23:15",
+    "T4":  "PASS (blocked)",
+    "T3":  "PASS (enforced tenant isolation)",
+    "T2":  "PASS (enforced tenant isolation)",
+    "TripId":  "4c0b121c-6e37-435f-8aa7-8e7d286019d6"
+}

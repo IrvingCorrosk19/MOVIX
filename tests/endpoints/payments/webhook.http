@@ -1,0 +1,14 @@
+### POST /api/v1/payments/webhook
+### Descripción: Webhook de Stripe. AllowAnonymous. Body y Stripe-Signature según Stripe.
+### Headers requeridos: Stripe-Signature (validación), Content-Type: application/json
+### Códigos: 200 OK (procesado o idempotente) | 400 WEBHOOK_SIGNATURE_INVALID, etc.
+
+# @name stripeWebhook
+POST {{BASE_URL}}/api/v1/payments/webhook
+Stripe-Signature: {{STRIPE_SIGNATURE}}
+Content-Type: application/json
+
+# Body: payload crudo enviado por Stripe (no se envía Authorization)
+
+### Response esperado (200): (sin body significativo)
+### Response error (400): Invalid webhook signature, Missing event id

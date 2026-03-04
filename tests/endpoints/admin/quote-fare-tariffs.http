@@ -1,0 +1,19 @@
+### GET /api/v1/admin/tariffs/fare/quote
+### Descripción: Cotizar tarifa (desde contexto admin). Requiere Admin/Support + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Query: distanceKm, durationMin
+### Códigos: 200 OK (QuoteFareDto) | 404 NO_ACTIVE_TARIFF | 400
+
+# @name quoteFareAdmin
+GET {{BASE_URL}}/api/v1/admin/tariffs/fare/quote?distanceKm=5.0&durationMin=15
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+
+### Response esperado (200):
+# {
+#   "fareAmount": 12.50,
+#   "currency": "USD",
+#   "tariffPlanId": "guid"
+# }
+
+### Response error (404): NO_ACTIVE_TARIFF / NO_APPLICABLE_TARIFF

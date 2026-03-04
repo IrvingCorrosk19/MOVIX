@@ -1,0 +1,16 @@
+### GET /api/v1/trips/{id}
+### Descripción: Obtener un viaje por id. Requiere JWT (acceso según rol/ABAC).
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK (TripDto) | 403 | 404 TRIP_NOT_FOUND | 400
+
+# @name getTrip
+GET {{BASE_URL}}/api/v1/trips/{{TRIP_ID}}
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (200):
+# {
+#   "id", "status", "pickupAddress", "dropoffAddress", "estimatedAmount", "finalAmount", "currency", "createdAtUtc"
+# }
+
+### Response error (404): { "error", "code": "TRIP_NOT_FOUND" }
+### Response error (403): Forbidden

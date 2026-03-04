@@ -1,0 +1,20 @@
+### GET /api/v1/admin/trips
+### Descripción: Listar viajes (admin). Requiere rol Admin o Support.
+### Headers requeridos: Authorization: Bearer <token>
+### Query: page (default 1), pageSize (default 20)
+### Códigos: 200 OK (AdminTripsResponse) | 400 { "error" }
+
+# @name getAdminTrips
+GET {{BASE_URL}}/api/v1/admin/trips?page=1&pageSize=20
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (200):
+# {
+#   "trips": [
+#     { "id", "status", "passengerId", "driverId", "pickupAddress", "dropoffAddress", "finalAmount", "createdAtUtc" }
+#   ],
+#   "totalCount": 0
+# }
+
+### Response error (400):
+# { "error": "string" }

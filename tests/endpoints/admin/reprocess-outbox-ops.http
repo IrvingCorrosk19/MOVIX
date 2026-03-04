@@ -1,0 +1,14 @@
+### POST /api/v1/admin/ops/outbox/{id}/reprocess
+### Descripción: Reprocesar dead-letter desde ops. Requiere rol Admin o Support. Solo mensajes en dead-letter.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 204 No Content | 404 | 400 { "error": "Only dead-letter messages can be reprocessed." }
+
+# @name reprocessOutboxOps
+POST {{BASE_URL}}/api/v1/admin/ops/outbox/00000000-0000-0000-0000-000000000000/reprocess
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (204):
+### (sin body)
+
+### Response error (404): Not Found
+### Response error (400): { "error": "string" }

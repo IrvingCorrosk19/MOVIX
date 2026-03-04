@@ -1,0 +1,75 @@
+###############################################################################
+# POST /api/v1/auth/register — Movix API
+###############################################################################
+# Endpoint:    POST /api/v1/auth/register
+# Propósito:   Registrar un nuevo usuario pasajero en un tenant.
+# Flujo:       Onboarding pasajero → luego POST /auth/login.
+# Seguridad:   Sin autenticación (público). Rate limit: auth.
+# Dependencias: Tenant debe existir y estar activo.
+###############################################################################
+
+@baseUrl = http://127.0.0.1:55392
+@validTenantId = 00000000-0000-0000-0000-000000000001
+@invalidTenantId = 99999999-9999-9999-9999-999999999999
+
+###############################################################################
+# ESCENARIO 1 — Registro válido
+###############################################################################
+# Código esperado: 202 Accepted
+# Validaciones: ✔ Status 202 | ✔ No body inesperado | ✔ No 500
+# Si falla: tenant inactivo/inexistente, email duplicado, o error de servicio.
+
+# @name register_valid
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "passenger.test1@movix.local",
+  "password": "TestPassword123!",
+  "tenantId": "{{validTenantId}}"
+}
+
+###############################################################################
+# ESCENARIO 2 — Tenant inexistente
+###############################################################################
+# Código esperado: 400 Bad Request
+# Validar body: "error", "code" (TENANT_INVALID o similar).
+# 202 → fallo crítico de validación (registro con tenant inexistente).
+# 500 → fallo en manejo de error (excepción no controlada).
+
+# @name register_invalid_tenant
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "passenger.test1@movix.local",
+  "password": "TestPassword123!",
+  "tenantId": "{{invalidTenantId}}"
+}
+
+###############################################################################
+# ESCENARIO 3 — Password inválido (<8 caracteres)
+###############################################################################
+# Código esperado: 400 Bad Request
+# Validar: body con estructura de validación (error, code).
+# 202 → bug severo (contraseña débil aceptada).
+# 500 → bug en validación/middleware.
+
+# @name register_invalid_password
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "passenger.test1@movix.local",
+  "password": "Short1!",
+  "tenantId": "{{validTenantId}}"
+}
+
+###############################################################################
+# MATRIZ DE RESULTADOS ESPERADOS
+###############################################################################
+# Escenario              | Código | Body                    | Si no cumple
+# -----------------------|--------|-------------------------|------------------------------------------
+# 1 Registro válido      | 202    | vacío o mínimo          | Revisar tenant, email, logs
+# 2 Tenant inexistente   | 400    | error, code             | Validación o manejo de errores
+# 3 Password inválido    | 400    | error, code             | Validación de contraseña / middleware

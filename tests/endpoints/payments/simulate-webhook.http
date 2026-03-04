@@ -1,0 +1,17 @@
+### POST /api/v1/payments/simulate-webhook
+### Descripción: Simular webhook (solo entorno Development). AllowAnonymous.
+### Headers requeridos: ninguno (auth no requerida).
+### Códigos: 200 OK | 404 (no Development o payment not found) | 400 PAYMENT_NOT_SIMULATABLE
+
+# @name simulateWebhook
+POST {{BASE_URL}}/api/v1/payments/simulate-webhook
+Content-Type: application/json
+
+{
+  "paymentId": "{{PAYMENT_ID}}",
+  "eventType": "payment_intent.succeeded"
+}
+
+### Response esperado (200): (sin body)
+### Response error (404): Solo en Development; Payment not found
+### Response error (400): Payment has no ExternalPaymentId

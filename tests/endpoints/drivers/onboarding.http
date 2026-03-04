@@ -1,0 +1,25 @@
+### POST /api/v1/drivers/onboarding
+### Descripción: Registro de conductor (vehículo). Requiere rol Driver o Admin.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK (DriverOnboardingResponse) | 400 DRIVER_EXISTS, UNAUTHORIZED, etc.
+
+# @name driverOnboarding
+POST {{BASE_URL}}/api/v1/drivers/onboarding
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "licenseNumber": "LIC123",
+  "vehiclePlate": "ABC-1234",
+  "vehicleModel": "Sedan",
+  "vehicleColor": "Black"
+}
+
+### Response esperado (200):
+# {
+#   "driverId": "guid",
+#   "isVerified": false
+# }
+
+### Response error (400):
+# { "error": "string", "code": "DRIVER_EXISTS" | "UNAUTHORIZED" | ... }

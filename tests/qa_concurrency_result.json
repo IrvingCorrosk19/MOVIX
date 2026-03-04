@@ -1,0 +1,9 @@
+﻿{
+    "R2_HTTP":  400,
+    "R1_Body":  "{\"id\":\"c6d84c9d-21eb-4fdc-8f82-eebec8c871a2\",\"status\":\"Accepted\",\"pickupAddress\":\"Conc A\",\"dropoffAddress\":\"Conc B\",\"estimatedAmount\":10.00,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-04T01:23:15.396776Z\"}",
+    "R2_Body":  "{\"error\":\"Trip is not in Requested state\",\"code\":\"TRIP_INVALID_STATE\"}",
+    "Timestamp":  "2026-03-03 20:23:15",
+    "R1_HTTP":  200,
+    "ConcResult":  "PASS",
+    "TripId":  "c6d84c9d-21eb-4fdc-8f82-eebec8c871a2"
+}

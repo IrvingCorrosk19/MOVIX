@@ -1,0 +1,24 @@
+### POST /api/v1/payments
+### Descripción: Crear pago para un viaje completado. Requiere JWT (pasajero) + Idempotency-Key.
+### Headers requeridos: Authorization: Bearer <token>, Idempotency-Key: <string>
+### Códigos: 200 OK (PaymentDto) | 400 IDEMPOTENCY_KEY_REQUIRED, TRIP_NOT_COMPLETED | 403 | 503 PAYMENT_GATEWAY_ERROR
+
+# @name createPayment
+POST {{BASE_URL}}/api/v1/payments
+Authorization: Bearer {{ACCESS_TOKEN}}
+Idempotency-Key: payment-{{$guid}}
+Content-Type: application/json
+
+{
+  "tripId": "{{TRIP_ID}}",
+  "amount": 15.00,
+  "currency": "USD"
+}
+
+### Response esperado (200):
+# {
+#   "id", "tripId", "amount", "currency", "status", "createdAtUtc", "clientSecret" (opcional)
+# }
+
+### Response error (400): IDEMPOTENCY_KEY_REQUIRED, TRIP_NOT_COMPLETED, UNAUTHORIZED_PAYMENT
+### Response error (503): PAYMENT_GATEWAY_ERROR

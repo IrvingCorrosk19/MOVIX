@@ -1,0 +1,31 @@
+### POST /api/v1/admin/tariffs
+### Descripción: Crear plan de tarifa. Requiere Admin/Support + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TariffPlanDto) | 400 { "error", "code" }
+
+# @name createTariff
+POST {{BASE_URL}}/api/v1/admin/tariffs
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+Content-Type: application/json
+
+{
+  "name": "Standard",
+  "currency": "USD",
+  "baseFare": 5.00,
+  "pricePerKm": 1.50,
+  "pricePerMinute": 0.25,
+  "minimumFare": 8.00,
+  "priority": 100,
+  "effectiveFromUtc": null,
+  "effectiveUntilUtc": null
+}
+
+### Response esperado (200):
+# {
+#   "id", "tenantId", "name", "currency", "baseFare", "pricePerKm", "pricePerMinute", "minimumFare",
+#   "isActive", "priority", "effectiveFromUtc", "effectiveUntilUtc", "createdAtUtc"
+# }
+
+### Response error (400):
+# { "error": "string", "code": "string" }

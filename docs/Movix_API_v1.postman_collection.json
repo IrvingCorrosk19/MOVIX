@@ -1,0 +1,1731 @@
+{
+  "info": {
+    "_postman_id": "c4f8e3b1-2d7a-4e9f-8b6c-1a3d5e7f9b0c",
+    "name": "Movix_API_v1",
+    "description": "Colección Postman completa para Movix API v1 — Plataforma enterprise de ride-sharing.\n\n**Base URL:** {{baseUrl}}\n\n## Flujo de uso recomendado\n1. `Auth › Register` — crear usuarios (Admin, Driver, Passenger)\n2. `Auth › Login` por rol → tokens se guardan automáticamente\n3. `Admin › Create Tenant` → `tenantId` se guarda automáticamente\n4. `Admin › Create Tariff` → `tariffId` se guarda → `Activate Tariff`\n5. `Drivers › Onboarding` (con driverToken)\n6. `Drivers › Update Status` → Online (1)\n7. `Trips › Create Trip` → `tripId` se guarda\n8. `Admin › Assign Driver` (asigna el driver disponible)\n9. `Trips › Accept → Arrive → Start → Complete`\n10. `Payments › Create Payment` → `paymentId` se guarda\n11. `Payments › Simulate Webhook` → confirma el pago\n\n## Estados de viaje\n`Requested` → `Accepted` → `DriverArrived` → `InProgress` → `Completed` | `Cancelled`\n\n## Roles\n- **Admin**: gestión de tenants, tarifas, asignación\n- **Driver**: onboarding, ubicación, estado, flujo del viaje\n- **Passenger**: crear viaje, crear pago",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:55392",
+      "type": "string",
+      "description": "Base URL del servidor Movix API"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@movix.io",
+      "type": "string",
+      "description": "Email del usuario Admin"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Admin@1234!",
+      "type": "string",
+      "description": "Contraseña del Admin"
+    },
+    {
+      "key": "driverEmail",
+      "value": "driver@movix.io",
+      "type": "string",
+      "description": "Email del usuario Driver"
+    },
+    {
+      "key": "driverPassword",
+      "value": "Driver@1234!",
+      "type": "string",
+      "description": "Contraseña del Driver"
+    },
+    {
+      "key": "passengerEmail",
+      "value": "passenger@movix.io",
+      "type": "string",
+      "description": "Email del usuario Passenger"
+    },
+    {
+      "key": "passengerPassword",
+      "value": "Passenger@1234!",
+      "type": "string",
+      "description": "Contraseña del Passenger"
+    },
+    {
+      "key": "tenantId",
+      "value": "",
+      "type": "string",
+      "description": "ID del tenant activo (se guarda automáticamente al crear un tenant)"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT Bearer token del Admin (se guarda automáticamente en Login Admin)"
+    },
+    {
+      "key": "driverToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT Bearer token del Driver (se guarda automáticamente en Login Driver)"
+    },
+    {
+      "key": "passengerToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT Bearer token del Passenger (se guarda automáticamente en Login Passenger)"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string",
+      "description": "Refresh token (se actualiza en cada login/refresh)"
+    },
+    {
+      "key": "tripId",
+      "value": "",
+      "type": "string",
+      "description": "ID del viaje activo (se guarda automáticamente al crear un viaje)"
+    },
+    {
+      "key": "tariffId",
+      "value": "",
+      "type": "string",
+      "description": "ID de la tarifa creada (se guarda automáticamente al crear una tarifa)"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string",
+      "description": "ID del pago activo (se guarda automáticamente al crear un pago)"
+    }
+  ],
+  "item": [
+    {
+      "name": "📁 Auth",
+      "description": "Endpoints de autenticación: registro, login por rol, refresh de token y logout.\n\nRate limit: 10 req/min por IP.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@movix.io\",\n  \"password\": \"Admin@1234!\",\n  \"tenantId\": \"{{tenantId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Registra un nuevo usuario en la plataforma.\n\n**Responde 202 Accepted** (prevención de enumeración de emails — no revela si el email existe).\n\n**Cambiar** email/password/tenantId según el rol a registrar:\n- Admin: `admin@movix.io` / `Admin@1234!`\n- Driver: `driver@movix.io` / `Driver@1234!`\n- Passenger: `passenger@movix.io` / `Passenger@1234!`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Registro aceptado — status 202\", function () {",
+                  "  pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test(\"Tiempo de respuesta < 3000ms\", function () {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Admin",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login del usuario Admin. Guarda automáticamente `accessToken` y `refreshToken` como variables de colección."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login Admin exitoso — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"LoginResponse válido y accessToken guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  // Campos exactos del record LoginResponse(string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAtUtc, int ExpiresInSeconds)",
+                  "  pm.expect(data).to.have.property(\"accessToken\");",
+                  "  pm.expect(data).to.have.property(\"refreshToken\");",
+                  "  pm.expect(data).to.have.property(\"accessTokenExpiresAtUtc\");",
+                  "  pm.expect(data).to.have.property(\"expiresInSeconds\");",
+                  "  pm.expect(data.accessToken).to.be.a(\"string\").and.to.have.length.above(10);",
+                  "  pm.expect(data.expiresInSeconds).to.be.a(\"number\").and.to.be.above(0);",
+                  "  pm.collectionVariables.set(\"accessToken\", data.accessToken);",
+                  "  pm.collectionVariables.set(\"refreshToken\", data.refreshToken);",
+                  "  console.log(\"[Admin] accessToken guardado:\", data.accessToken.substring(0, 30) + \"...\");",
+                  "  console.log(\"[Admin] Expira en:\", data.expiresInSeconds, \"segundos | Hasta:\", data.accessTokenExpiresAtUtc);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Driver",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{driverEmail}}\",\n  \"password\": \"{{driverPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login del usuario Driver. Guarda automáticamente `driverToken` como variable de colección."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login Driver exitoso — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"LoginResponse válido y driverToken guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"accessToken\");",
+                  "  pm.expect(data).to.have.property(\"refreshToken\");",
+                  "  pm.expect(data).to.have.property(\"accessTokenExpiresAtUtc\");",
+                  "  pm.expect(data).to.have.property(\"expiresInSeconds\");",
+                  "  pm.expect(data.accessToken).to.be.a(\"string\").and.to.have.length.above(10);",
+                  "  pm.collectionVariables.set(\"driverToken\", data.accessToken);",
+                  "  pm.collectionVariables.set(\"refreshToken\", data.refreshToken);",
+                  "  console.log(\"[Driver] driverToken guardado:\", data.accessToken.substring(0, 30) + \"...\");",
+                  "  console.log(\"[Driver] Expira en:\", data.expiresInSeconds, \"segundos\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Passenger",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{passengerEmail}}\",\n  \"password\": \"{{passengerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login del usuario Passenger. Guarda automáticamente `passengerToken` como variable de colección."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login Passenger exitoso — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"LoginResponse válido y passengerToken guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"accessToken\");",
+                  "  pm.expect(data).to.have.property(\"refreshToken\");",
+                  "  pm.expect(data).to.have.property(\"accessTokenExpiresAtUtc\");",
+                  "  pm.expect(data).to.have.property(\"expiresInSeconds\");",
+                  "  pm.expect(data.accessToken).to.be.a(\"string\").and.to.have.length.above(10);",
+                  "  pm.collectionVariables.set(\"passengerToken\", data.accessToken);",
+                  "  pm.collectionVariables.set(\"refreshToken\", data.refreshToken);",
+                  "  console.log(\"[Passenger] passengerToken guardado:\", data.accessToken.substring(0, 30) + \"...\");",
+                  "  console.log(\"[Passenger] Expira en:\", data.expiresInSeconds, \"segundos\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            },
+            "description": "Renueva el access token usando el refresh token activo. Actualiza automáticamente `accessToken` y `refreshToken`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Refresh exitoso — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "if (data.accessToken) {",
+                  "  pm.collectionVariables.set(\"accessToken\", data.accessToken);",
+                  "  console.log(\"accessToken renovado:\", data.accessToken.substring(0, 30) + \"...\");",
+                  "}",
+                  "if (data.refreshToken) {",
+                  "  pm.collectionVariables.set(\"refreshToken\", data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "Invalida el refresh token del usuario.\n\n**Nota técnica:** El endpoint NO tiene `[Authorize]` explícito — es técnicamente anónimo, pero se recomienda enviar el Bearer token para que el servidor identifique al usuario (el middleware de autenticación lo procesa aunque no sea obligatorio).\n\n**El campo `refreshToken` en el body es opcional** — si se omite, solo se registra el logout sin invalidar el token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Logout exitoso — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"refreshToken\", \"\");",
+                  "console.log(\"Sesión cerrada. refreshToken limpiado.\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Admin",
+      "description": "Endpoints de administración: gestión de tenants, planes tarifarios, viajes y conductores.\n\n**Requiere:** `Bearer {{accessToken}}` (rol Admin o SuperAdmin)\n**Rate limit:** 30 req/min",
+      "item": [
+        {
+          "name": "Create Tenant",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Movix Bogotá\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            },
+            "description": "Crea un nuevo tenant en la plataforma. Guarda automáticamente el `tenantId` como variable de colección.\n\n**Requiere:** Admin o SuperAdmin token"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Tenant creado — status 200 o 201\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test(\"tenantId guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.collectionVariables.set(\"tenantId\", data.id);",
+                  "  console.log(\"tenantId guardado:\", data.id);",
+                  "  console.log(\"Tenant name:\", data.name, \"| isActive:\", data.isActive);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Tenants",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "tenants"]
+            },
+            "description": "Lista todos los tenants registrados en la plataforma.\n\n**Requiere:** Admin o SuperAdmin token"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lista de tenants — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "var tenants = data.tenants || data;",
+                  "console.log(\"Total tenants:\", Array.isArray(tenants) ? tenants.length : \"N/A\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Tariff",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant al que pertenece la tarifa"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tarifa Estándar\",\n  \"currency\": \"USD\",\n  \"baseFare\": 2.50,\n  \"pricePerKm\": 1.20,\n  \"pricePerMinute\": 0.25,\n  \"minimumFare\": 5.00,\n  \"priority\": 100,\n  \"effectiveFromUtc\": \"2025-01-01T00:00:00Z\",\n  \"effectiveUntilUtc\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/tariffs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "tariffs"]
+            },
+            "description": "Crea un plan tarifario para el tenant. Guarda automáticamente el `tariffId`.\n\n**Requiere:** `X-Tenant-Id` header, Admin token\n\n**Fórmula de cálculo:**\n`fare = baseFare + (distanceKm × pricePerKm) + (durationMin × pricePerMinute)`\n\n**Nota:** `priority` mayor = mayor precedencia si hay múltiples tarifas activas."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Tarifa creada — status 200 o 201\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test(\"tariffId guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.collectionVariables.set(\"tariffId\", data.id);",
+                  "  console.log(\"tariffId guardado:\", data.id);",
+                  "  console.log(\"Tarifa:\", data.name, \"| isActive:\", data.isActive, \"| priority:\", data.priority);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Activate Tariff",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant propietario de la tarifa"
+              }
+            ],
+            "body": {
+              "mode": "none"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/tariffs/{{tariffId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "tariffs", "{{tariffId}}", "activate"]
+            },
+            "description": "Activa un plan tarifario para el tenant. No requiere body.\n\n**Requiere:** `X-Tenant-Id` (header obligatorio por `[RequireTenant]` a nivel de clase), `{{tariffId}}` en la URL, Admin token\n\n**Errores posibles:**\n- `TARIFF_NOT_FOUND` (404)\n- `TARIFF_CROSS_TENANT` (403) — la tarifa pertenece a otro tenant\n- `TARIFF_PRIORITY_CONFLICT` (400) — conflicto de prioridad con tarifa activa\n\n**Respuesta:** `TariffPlanDto` con `isActive: true`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Tarifa activada — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Tarifa activada:\", data.name, \"| isActive:\", data.isActive);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Active Tariff",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/tariffs/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "tariffs", "active"]
+            },
+            "description": "Obtiene la tarifa activa del tenant.\n\n**Requiere:** `X-Tenant-Id` header, Admin token\n\n**Error posible:** `NO_ACTIVE_TARIFF` — no hay tarifa activa para el tenant."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Tarifa activa obtenida — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "if (data.id) {",
+                  "  pm.collectionVariables.set(\"tariffId\", data.id);",
+                  "  console.log(\"Tarifa activa:\", data.name, \"| baseFare:\", data.baseFare, data.currency);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Trips",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/trips?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "trips"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página (desde 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Registros por página (máx. recomendado: 50)"
+                }
+              ]
+            },
+            "description": "Lista todos los viajes del tenant con paginación.\n\n**Requiere:** `X-Tenant-Id` header, Admin/Support token"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lista de viajes — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Total viajes:\", data.totalCount);",
+                  "console.log(\"En esta página:\", data.trips ? data.trips.length : 0);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Drivers",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/drivers?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "drivers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página (desde 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Registros por página"
+                }
+              ]
+            },
+            "description": "Lista los conductores del tenant con paginación.\n\n**Requiere:** `X-Tenant-Id` header, Admin/Support token"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lista de conductores — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Total conductores:\", data.totalCount);",
+                  "if (data.drivers && data.drivers.length > 0) {",
+                  "  console.log(\"Primer driver status:\", data.drivers[0].status, \"| isVerified:\", data.drivers[0].isVerified);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Drivers",
+      "description": "Endpoints del conductor: onboarding, actualización de estado y ubicación GPS.\n\n**Requiere:** `Bearer {{driverToken}}` (rol `Driver` o `Admin`)\n**Sin [RequireTenant]** — el tenant se resuelve del claim `tenant_id` en el JWT. No se envía `X-Tenant-Id`.\n**Rate limit:** política `trips` — 30 req/min (status y location)",
+      "item": [
+        {
+          "name": "Onboarding",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licenseNumber\": \"COL-DC-123456\",\n  \"vehiclePlate\": \"ABC-123\",\n  \"vehicleModel\": \"Toyota Prius 2023\",\n  \"vehicleColor\": \"Blanco\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/onboarding",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "onboarding"]
+            },
+            "description": "Registra los datos del vehículo y licencia del conductor.\n\n**Requiere:** solo `driverToken` — el tenant se toma del claim `tenant_id` del JWT, no del header.\n\n**No tiene [RequireTenant]** — `X-Tenant-Id` no es necesario.\n\n**Respuesta:** `{ driverId: Guid, isVerified: false }` — el conductor inicia sin verificar, estado `Offline`.\n\n**Error posible:** `DRIVER_EXISTS` (400) si el conductor ya hizo onboarding."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Onboarding exitoso — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Respuesta contiene driverId\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"driverId\");",
+                  "  pm.expect(data.isVerified).to.equal(false);",
+                  "  console.log(\"Driver onboarding completado | driverId:\", data.driverId);",
+                  "  console.log(\"isVerified:\", data.isVerified, \"(siempre false en creación)\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "status"]
+            },
+            "description": "Actualiza el estado de disponibilidad del conductor.\n\n**Requiere:** solo `driverToken` — tenant viene del JWT, no necesita `X-Tenant-Id`.\n**No tiene [RequireTenant].**\n\n**Enum `DriverStatus` (entero):**\n- `0` = `Offline` — no disponible\n- `1` = `Online` — disponible para recibir viajes ← usar antes de Create Trip\n- `2` = `Busy` — ocupado temporalmente\n- `3` = `OnTrip` — en un viaje activo\n\n**Rate limit:** política `trips` — 30 req/min\n\n**Respuesta:** 200 OK (cuerpo vacío)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Estado actualizado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "try {",
+                  "  var body = JSON.parse(pm.request.body.raw);",
+                  "  var estados = { 0: 'Offline', 1: 'Online', 2: 'Busy', 3: 'OnTrip' };",
+                  "  console.log(\"Nuevo estado del driver:\", estados[body.status] || body.status);",
+                  "} catch(e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 4.710989,\n  \"longitude\": -74.072090,\n  \"heading\": 180.0,\n  \"speed\": 35.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/location",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "location"]
+            },
+            "description": "Actualiza la posición GPS del conductor en tiempo real — almacenada en PostGIS.\n\n**Requiere:** solo `driverToken` — tenant viene del JWT.\n**No tiene [RequireTenant].**\n\n**Campos:**\n- `latitude` / `longitude` — coordenadas WGS84 (obligatorias)\n- `heading` — rumbo en grados 0–360° (opcional)\n- `speed` — velocidad en km/h (opcional)\n\n**Rate limit:** política `trips` — 30 req/min\n**Respuesta:** 200 OK (cuerpo vacío)\n\n**Coordenadas de ejemplo:** Norte de Bogotá, Colombia"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Ubicación actualizada — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var body = JSON.parse(pm.request.body.raw);",
+                  "console.log(\"Posición GPS actualizada: lat\", body.latitude, \"lng\", body.longitude, \"speed\", body.speed, \"km/h\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Fare",
+      "description": "Cotización de tarifa según distancia y duración usando el plan tarifario activo del tenant.\n\n**Requiere:** `Bearer {{accessToken}}`, `X-Tenant-Id`",
+      "item": [
+        {
+          "name": "Quote",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant (determina qué tarifa se usa)"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fare/quote?distanceKm=10&durationMin=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "fare", "quote"],
+              "query": [
+                {
+                  "key": "distanceKm",
+                  "value": "10",
+                  "description": "Distancia estimada del viaje en kilómetros"
+                },
+                {
+                  "key": "durationMin",
+                  "value": "25",
+                  "description": "Duración estimada del viaje en minutos"
+                }
+              ]
+            },
+            "description": "Calcula el precio estimado de un viaje usando la tarifa activa del tenant.\n\n**Fórmula:**\n`fare = max(minimumFare, baseFare + distanceKm × pricePerKm + durationMin × pricePerMinute)`\n\n**Ejemplo con tarifa estándar:**\n`max(5.00, 2.50 + 10×1.20 + 25×0.25) = max(5.00, 20.75) = $20.75`\n\n**Error posible:** `NO_ACTIVE_TARIFF`, `NO_APPLICABLE_TARIFF`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Cotización obtenida — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Respuesta contiene fareAmount y currency\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"fareAmount\");",
+                  "  pm.expect(data).to.have.property(\"currency\");",
+                  "  pm.expect(data.fareAmount).to.be.above(0);",
+                  "  console.log(\"Cotización:\", data.currency, data.fareAmount, \"| tariffPlanId:\", data.tariffPlanId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Trips",
+      "description": "Flujo completo del ciclo de vida del viaje.\n\n**Flujo de estados:**\n`Requested` → `Accepted` → `DriverArrived` → `InProgress` → `Completed`\n`Cancelled` (desde cualquier estado activo)\n\n**Rate limit:** 30 req/min",
+      "item": [
+        {
+          "name": "Create Trip",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "UUID único por solicitud para prevenir viajes duplicados"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupLatitude\": 4.710989,\n  \"pickupLongitude\": -74.072090,\n  \"dropoffLatitude\": 4.678393,\n  \"dropoffLongitude\": -74.055420,\n  \"pickupAddress\": \"Calle 100 #15-18, Bogotá\",\n  \"dropoffAddress\": \"Carrera 7 #32-16, Bogotá\",\n  \"estimatedAmount\": 18.50,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips"]
+            },
+            "description": "Crea un nuevo viaje desde el Passenger. Guarda automáticamente el `tripId`.\n\n**Requiere:** `passengerToken`, `X-Tenant-Id`, `Idempotency-Key` (GUID único por request)\n\n**Estado inicial:** `Requested`\n\n**Coordenadas de ejemplo:** Norte → Centro de Bogotá, Colombia"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Viaje creado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TripDto válido con estado Requested y tripId guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.expect(data).to.have.property(\"status\");",
+                  "  pm.expect(data).to.have.property(\"currency\");",
+                  "  pm.expect(data).to.have.property(\"createdAtUtc\");",
+                  "  pm.expect(data.status).to.equal(\"Requested\");",
+                  "  pm.collectionVariables.set(\"tripId\", data.id);",
+                  "  console.log(\"tripId guardado:\", data.id);",
+                  "  console.log(\"Estado inicial:\", data.status);",
+                  "  console.log(\"Monto estimado:\", data.currency, data.estimatedAmount);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Trip",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}"]
+            },
+            "description": "Obtiene el detalle completo de un viaje por ID.\n\n**Requiere:** Bearer token (cualquier rol)\n\n**Retorna:** TripDetailDto con passengerId, driverId, estado, montos, coordenadas."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Detalle del viaje — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TripDto contiene campos requeridos\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.expect(data).to.have.property(\"status\");",
+                  "  pm.expect(data).to.have.property(\"currency\");",
+                  "  pm.expect(data).to.have.property(\"createdAtUtc\");",
+                  "  var validStatuses = [\"Requested\",\"Accepted\",\"DriverArrived\",\"InProgress\",\"Completed\",\"Cancelled\"];",
+                  "  pm.expect(validStatuses).to.include(data.status);",
+                  "  console.log(\"Trip ID:\", data.id);",
+                  "  console.log(\"Status:\", data.status);",
+                  "  console.log(\"Monto estimado:\", data.currency, data.estimatedAmount, \"| final:\", data.finalAmount);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Driver",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "body": {
+              "mode": "none"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}", "assign-driver"]
+            },
+            "description": "Asigna automáticamente el conductor disponible más cercano al viaje. No requiere body.\n\n**Requiere:** Admin/Support token, `X-Tenant-Id` (obligatorio por `[RequireTenant]`)\n**Solo accesible por roles:** `Admin`, `Support`\n\n**Estado previo:** `Requested`\n**Rate limit:** política `trips` — 30 req/min\n\n**Errores posibles:**\n- `NO_DRIVERS_AVAILABLE` (409) — sin conductores en estado `Online`\n- `TRIP_INVALID_STATE` (400) — el viaje no está en estado `Requested`\n- `TRIP_NOT_FOUND` (404)\n- `CONFLICT` (409) — concurrencia optimista (RowVersion)\n\n**Respuesta:** `TripDto` con el `driverId` asignado"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Conductor asignado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Driver asignado:\", data.driverId, \"| Estado:\", data.status);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept Trip",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}", "accept"]
+            },
+            "description": "El conductor acepta el viaje asignado e indica el vehículo con el que realizará el servicio.\n\n**Requiere:** `driverToken` (rol `Driver` o `Admin`)\n**NO requiere** `X-Tenant-Id` — sin `[RequireTenant]`.\n**Rate limit:** política `trips` — 30 req/min\n\n**Campo `vehicleId`:** GUID del vehículo — se genera automáticamente en el Onboarding si se envía `vehiclePlate`. Obtenerlo consultando `GET /api/v1/trips/{{tripId}}`.\n\n**Estado previo:** `Requested`\n**Estado posterior:** `Accepted`\n\n**Errores posibles:**\n- `TRIP_NOT_FOUND` (404)\n- `TRIP_INVALID_STATE` (400)\n- `FORBIDDEN` (403) — el driver no fue el asignado"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Viaje aceptado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Viaje aceptado | Status:\", data.status, \"| vehicleId:\", data.vehicleId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Arrive",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "body": {
+              "mode": "none"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}/arrive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}", "arrive"]
+            },
+            "description": "El conductor marca que llegó al punto de recogida del pasajero. Sin body.\n\n**Requiere:** `driverToken` (rol `Driver` o `Admin`), `X-Tenant-Id` (obligatorio por `[RequireTenant]`)\n\n**Estado previo:** `Accepted`\n**Estado posterior:** `DriverArrived`\n\n**Errores posibles:**\n- `INVALID_TRANSITION` (422) — estado incorrecto\n- `DRIVER_NOT_ASSIGNED` (422) — el driver no está asignado a este viaje\n- `FORBIDDEN` (403)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Conductor llegó al pickup — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Estado actualizado:\", data.status);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "body": {
+              "mode": "none"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}", "start"]
+            },
+            "description": "El conductor inicia el viaje — el pasajero está a bordo. Sin body.\n\n**Requiere:** `driverToken` (rol `Driver` o `Admin`), `X-Tenant-Id` (obligatorio por `[RequireTenant]`)\n\n**Estado previo:** `DriverArrived`\n**Estado posterior:** `InProgress`\n\n**Errores posibles:**\n- `INVALID_TRANSITION` (422) — estado incorrecto\n- `DRIVER_NOT_ASSIGNED` (422)\n- `FORBIDDEN` (403)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Viaje iniciado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Viaje en curso | Status:\", data.status);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"distanceKm\": 8.5,\n  \"durationMinutes\": 22\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}", "complete"]
+            },
+            "description": "El conductor marca el viaje como completado con distancia y duración reales.\n\n**Requiere:** `driverToken` (rol `Driver` o `Admin`)\n**NO requiere** `X-Tenant-Id` — sin `[RequireTenant]`.\n\n**Campos opcionales** (si no se envían, se usan los valores estimados del viaje):\n- `distanceKm` — distancia real recorrida\n- `durationMinutes` — duración real del viaje\n\n**Estado previo:** `InProgress`\n**Estado posterior:** `Completed`\n\n**Resultado:** Se recalcula `finalAmount` aplicando la tarifa activa sobre los valores reales.\n\n**Errores posibles:**\n- `INVALID_TRANSITION` (422)\n- `DRIVER_NOT_ASSIGNED` (422)\n- `FORBIDDEN` (403)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Viaje completado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TripDto válido con estado Completed\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.expect(data).to.have.property(\"status\");",
+                  "  pm.expect(data.status).to.equal(\"Completed\");",
+                  "  pm.expect(data).to.have.property(\"currency\");",
+                  "  console.log(\"Status:\", data.status);",
+                  "  console.log(\"Monto final:\", data.currency, data.finalAmount);",
+                  "  console.log(\"Monto estimado:\", data.currency, data.estimatedAmount);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}",
+                "description": "ID del tenant"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Solicitud del pasajero\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/{{tripId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips", "{{tripId}}", "cancel"]
+            },
+            "description": "Cancela el viaje desde cualquier estado activo. ABAC en el handler verifica que el usuario sea el passenger del viaje, el driver asignado, o un Admin/Support.\n\n**Puede usar:** `accessToken` (Admin/Support), `passengerToken` o `driverToken`\n**Requiere:** `X-Tenant-Id` (obligatorio por `[RequireTenant]`)\n\n**Estado posterior:** `Cancelled`\n\n**Campo `reason`:** opcional\n\n**Errores posibles:**\n- `FORBIDDEN` (403) — usuario no autorizado para este viaje\n- `TRIP_INVALID_STATE` (400) — viaje ya completado o cancelado\n- `TRIP_NOT_FOUND` (404)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Viaje cancelado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TripDto válido con estado Cancelled\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.expect(data.status).to.equal(\"Cancelled\");",
+                  "  console.log(\"Viaje cancelado | Status:\", data.status, \"| ID:\", data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Payments",
+      "description": "Endpoints de pagos: crear cobro, procesar webhook de Stripe y simulación de eventos en desarrollo.\n\n**Rate limit:** 20 req/min",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "UUID único por intento de pago — previene cobros duplicados"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"amount\": 25.50,\n  \"currency\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments"]
+            },
+            "description": "Crea un intento de pago para el viaje completado. Guarda automáticamente el `paymentId`.\n\n**Requiere:** `passengerToken`, `Idempotency-Key` (GUID único)\n\n**Estado inicial:** `Pending`\n\n**Respuesta incluye** `clientSecret` de Stripe para confirmar el pago desde el cliente.\n\n**Error posible:** `PAYMENT_GATEWAY_ERROR` (503)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Pago creado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"PaymentDto válido y paymentId guardado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  pm.expect(data).to.have.property(\"id\");",
+                  "  pm.expect(data).to.have.property(\"tripId\");",
+                  "  pm.expect(data).to.have.property(\"amount\");",
+                  "  pm.expect(data).to.have.property(\"currency\");",
+                  "  pm.expect(data).to.have.property(\"status\");",
+                  "  pm.expect(data.status).to.equal(\"Pending\");",
+                  "  pm.collectionVariables.set(\"paymentId\", data.id);",
+                  "  console.log(\"paymentId guardado:\", data.id);",
+                  "  console.log(\"Estado:\", data.status, \"| Monto:\", data.currency, data.amount);",
+                  "  if (data.clientSecret) {",
+                  "    console.log(\"Stripe clientSecret disponible:\", data.clientSecret.substring(0, 20) + \"...\");",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Stripe-Signature",
+                "value": "t=1708000000,v1=abc123def456789012345678901234567890abcdef1234567890abcdef123456",
+                "description": "Firma HMAC-SHA256 generada por Stripe para validar autenticidad del evento"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_3OqVnxKZ2eZvKYlo1234567890\",\n  \"object\": \"event\",\n  \"type\": \"payment_intent.succeeded\",\n  \"livemode\": false,\n  \"created\": 1708000000,\n  \"api_version\": \"2023-10-16\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_3OqVnxKZ2eZvKYlo1234567890\",\n      \"object\": \"payment_intent\",\n      \"amount\": 2550,\n      \"currency\": \"usd\",\n      \"status\": \"succeeded\",\n      \"metadata\": {\n        \"paymentId\": \"{{paymentId}}\",\n        \"tripId\": \"{{tripId}}\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "webhook"]
+            },
+            "description": "Endpoint para recibir eventos de Stripe (configurado en el dashboard de Stripe).\n\n⚠️ **IMPORTANTE:** En producción, la firma `Stripe-Signature` es validada criptográficamente.\nEn desarrollo, usar el endpoint **Simulate Webhook** en su lugar.\n\n**Sin autenticación Bearer** — solo validación de firma `Stripe-Signature`\n\n**Idempotente:** Los eventos con el mismo `id` no se procesan dos veces (caché Redis).\n\n**Error posible:** `WEBHOOK_SIGNATURE_INVALID` (400)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Webhook procesado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var data = json.data || json;",
+                  "console.log(\"Webhook result:\", JSON.stringify(data));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simulate Webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"eventType\": \"payment_intent.succeeded\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/simulate-webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments", "simulate-webhook"]
+            },
+            "description": "Simula un evento de webhook de Stripe para entornos de **desarrollo**.\n\n**Solo disponible en modo `Development`** — retorna 404 en producción.\n**Sin autenticación Bearer — `[AllowAnonymous]`.**\n**Sin rate limiting — `[DisableRateLimiting]`.**\n\n**Campos requeridos en el body:**\n- `paymentId` — GUID del pago creado (debe existir en DB)\n- `eventType` — tipo de evento a simular\n\n⚠️ **Condición crítica:** El pago debe tener un `ExternalPaymentId` asignado (se asigna cuando Stripe procesa el `CreatePayment`). Sin este campo, retorna `PAYMENT_NOT_SIMULATABLE` (400).\n\n**Tipos de evento soportados:**\n- `\"payment_intent.succeeded\"` → estado `Completed`\n- `\"payment_intent.payment_failed\"` → estado `Failed`\n- `\"charge.refunded\"` → estado `Refunded`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Webhook simulado — status 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Respuesta del webhook simulado\", function () {",
+                  "  var json = pm.response.json();",
+                  "  var data = json.data || json;",
+                  "  console.log(\"Simulate webhook result:\", JSON.stringify(data));",
+                  "  if (data.eventType) {",
+                  "    console.log(\"Event type:\", data.eventType, \"| isValid:\", data.isValid);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+﻿{
+    "TotalSteps":  26,
+    "Timestamp":  "2026-03-03 06:42:07",
+    "Fails":  [
+                  "F2: Assign Driver 409 (concurrency or no driver)",
+                  "F4: Concurrency expected one 200 and one 409; got 409 and 409"
+              ],
+    "BaseUrl":  "http://127.0.0.1:55392",
+    "Results":  [
+                    {
+                        "Phase":  "F1",
+                        "Step":  "GET /health",
+                        "Content":  "{\"status\":\"Healthy\",\"checks\":[{\"name\":\"postgres\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"redis\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"outbox\",\"status\":\"Healthy\",\"description\":\"Outbox is healthy.\",\"error\":null},{\"name\":\"postgis\",\"status\":\"Healthy\",\"description\":\"PostGIS is available.\",\"error\":null}]}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F1",
+                        "Step":  "GET /ready",
+                        "Content":  "{\"status\":\"Healthy\",\"checks\":[{\"name\":\"postgres\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"redis\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"postgis\",\"status\":\"Healthy\",\"description\":\"PostGIS is available.\",\"error\":null}]}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F1",
+                        "Step":  "ready.status",
+                        "Content":  "Healthy",
+                        "Status":  0,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Login Admin",
+                        "Content":  "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMzI0Zjg3OC0wMTgxLTQxMmEtOWI4OS1hODAxZjQ0ZjhhNDYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJhZG1pbkBtb3ZpeC5pbyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwianRpIjoiNDg5NzVhODgtMGE2MC00NGZlLThhYjctY2RjM2YyNjBlOTM5IiwidGVuYW50X2lkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzcyNTM5MDI2LCJpc3MiOiJtb3ZpeCIsImF1ZCI6Im1vdml4In0.mbVQQGnbIH597iuVVA7dSDvn9Pxz9XQacRf7I7ejaCQ\",\"refreshToken\":\"dG+nKJfQwBeX4SlaqxN22FK0+PbEPSEHu7k5ZF52iNGUpqPJbp9gS/gWFfqosUlrKaqs6LR0bpN8d64f/NbQ+Q==\",\"accessTokenExpiresAtUtc\":\"2026-03-03T11:57:06.1358689Z\",\"expiresInSeconds\":899}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Login Driver",
+                        "Content":  "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYzRiMTU2ZS05NTc3LTQ5ZmItYmJkYy1mYmI0ZjYwOWYxY2QiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJkcml2ZXJAbW92aXguaW8iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJEcml2ZXIiLCJqdGkiOiI2Y2NiNTdmYi1iNDM2LTQyOWQtYmE0Zi1mMGZmOTg0ZjExZGUiLCJ0ZW5hbnRfaWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3NzI1MzkwMjYsImlzcyI6Im1vdml4IiwiYXVkIjoibW92aXgifQ.BKFSnTEEzcI-82MD7EkdIpCQZ7CkvHInOygXeXS6f4o\",\"refreshToken\":\"Hkx3PV7g7CXJOOMu1tDFvMtH1eBfYpvbLhsc69ubL3Vr0IZ3kydDdxVplhPL6y/WxnPGqhNJZH1MwzVto53eSQ==\",\"accessTokenExpiresAtUtc\":\"2026-03-03T11:57:06.288063Z\",\"expiresInSeconds\":899}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Register Passenger",
+                        "Content":  [
+
+                                    ],
+                        "Status":  202,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Login Passenger",
+                        "Content":  "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMGI5MzY3NS0zZTAzLTQ5NjItOTJjYy02MWZlMDVkYWYwODAiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJwYXNzZW5nZXItcWFAbW92aXguaW8iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJQYXNzZW5nZXIiLCJqdGkiOiIxYjNiNzQzZi1mNjliLTQyM2QtYmRlMy0zMmFjYzE4OTM4ZWQiLCJ0ZW5hbnRfaWQiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJleHAiOjE3NzI1MzkwMjYsImlzcyI6Im1vdml4IiwiYXVkIjoibW92aXgifQ.QkIj3V5alnaLbvCey23GpFKDVYsXmjxexhP_cXTdudM\",\"refreshToken\":\"iUMrMqXrhRN0ikY61KjQh7NgI6UTS/MaYfSzzF710/xpn0H9OjkqzHvYp1R2d2QXwSSpE/mKiqm4YOb24zin+w==\",\"accessTokenExpiresAtUtc\":\"2026-03-03T11:57:06.5718369Z\",\"expiresInSeconds\":899}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Driver Onboarding",
+                        "Content":  null,
+                        "Status":  400,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Driver Status Online",
+                        "Content":  [
+
+                                    ],
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Driver Location",
+                        "Content":  [
+
+                                    ],
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Create Tariff",
+                        "Content":  "{\"id\":\"acbc4494-fb25-4343-b39d-60c179172083\",\"tenantId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"QA Tariff\",\"currency\":\"USD\",\"baseFare\":2,\"pricePerKm\":1,\"pricePerMinute\":0.2,\"minimumFare\":5,\"isActive\":false,\"priority\":90,\"effectiveFromUtc\":\"2025-01-01T00:00:00Z\",\"effectiveUntilUtc\":null,\"createdAtUtc\":\"2026-03-03T11:42:06.6949046Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Activate Tariff",
+                        "Content":  "{\"id\":\"acbc4494-fb25-4343-b39d-60c179172083\",\"tenantId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"QA Tariff\",\"currency\":\"USD\",\"baseFare\":2.0000,\"pricePerKm\":1.0000,\"pricePerMinute\":0.2000,\"minimumFare\":5.0000,\"isActive\":true,\"priority\":90,\"effectiveFromUtc\":\"2025-01-01T00:00:00Z\",\"effectiveUntilUtc\":null,\"createdAtUtc\":\"2026-03-03T11:42:06.694904Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Create Trip",
+                        "Content":  "{\"id\":\"2a8b8016-3130-49e1-afd5-abc4a3c00ba4\",\"status\":\"Requested\",\"pickupAddress\":\"A\",\"dropoffAddress\":\"B\",\"estimatedAmount\":10,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T11:42:06.7630051Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F2",
+                        "Step":  "Assign Driver",
+                        "Content":  null,
+                        "Status":  409,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Create Trip (edge)",
+                        "Content":  "{\"id\":\"c819a75b-9695-44a7-8643-6d75b8c00c01\",\"status\":\"Requested\",\"pickupAddress\":\"X\",\"dropoffAddress\":\"Y\",\"estimatedAmount\":8,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T11:42:06.8123685Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Assign Driver (trip2)",
+                        "Content":  null,
+                        "Status":  409,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Create Trip (no assign)",
+                        "Content":  "{\"id\":\"eebeb30d-31e1-4391-924d-55af74d841b4\",\"status\":\"Requested\",\"pickupAddress\":\"P\",\"dropoffAddress\":\"Q\",\"estimatedAmount\":7,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T11:42:06.8535676Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Start without Assign",
+                        "Content":  null,
+                        "Status":  422,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Edge: Start without assign",
+                        "Content":  "Expected",
+                        "Status":  422,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Create Trip (complete no start)",
+                        "Content":  "{\"id\":\"ceb1ce04-48cf-4439-8859-4fc69dec454a\",\"status\":\"Requested\",\"pickupAddress\":\"M\",\"dropoffAddress\":\"N\",\"estimatedAmount\":9,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T11:42:06.8934376Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Assign (trip4)",
+                        "Content":  null,
+                        "Status":  409,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Payment on non-completed trip",
+                        "Content":  null,
+                        "Status":  400,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F3",
+                        "Step":  "Edge: Payment non-completed -\u003e 400",
+                        "Content":  "OK",
+                        "Status":  400,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F4",
+                        "Step":  "Create Trip (conc)",
+                        "Content":  "{\"id\":\"48cd343e-4e5e-4760-bbb8-64d24fc8e5d5\",\"status\":\"Requested\",\"pickupAddress\":\"C1\",\"dropoffAddress\":\"C2\",\"estimatedAmount\":11,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T11:42:06.9308224Z\"}",
+                        "Status":  200,
+                        "Ok":  true
+                    },
+                    {
+                        "Phase":  "F4",
+                        "Step":  "Assign concurrent 1",
+                        "Content":  "",
+                        "Status":  409,
+                        "Ok":  false
+                    },
+                    {
+                        "Phase":  "F4",
+                        "Step":  "Assign concurrent 2",
+                        "Content":  "",
+                        "Status":  409,
+                        "Ok":  false
+                    }
+                ],
+    "FailCount":  2
+}

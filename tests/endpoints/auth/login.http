@@ -1,0 +1,27 @@
+### POST /api/v1/auth/login
+### Descripción: Iniciar sesión. Devuelve accessToken y refreshToken.
+### Headers requeridos: ninguno.
+### Códigos: 200 OK (LoginResponse) | 401 { "error", "code" }
+
+# @name login
+POST {{BASE_URL}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{ADMIN_EMAIL}}",
+  "password": "{{ADMIN_PASSWORD}}"
+}
+
+### Response esperado (200):
+# {
+#   "accessToken": "eyJ...",
+#   "refreshToken": "string",
+#   "accessTokenExpiresAtUtc": "2025-03-02T12:00:00Z",
+#   "expiresInSeconds": 3600
+# }
+
+### Response error (401):
+# {
+#   "error": "string",
+#   "code": "string"
+# }

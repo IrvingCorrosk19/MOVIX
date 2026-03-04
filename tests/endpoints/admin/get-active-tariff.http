@@ -1,0 +1,12 @@
+### GET /api/v1/admin/tariffs/active
+### Descripción: Obtener tarifa activa del tenant. Requiere Admin/Support + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TariffPlanDto) | 404 NO_ACTIVE_TARIFF | 400
+
+# @name getActiveTariff
+GET {{BASE_URL}}/api/v1/admin/tariffs/active
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+
+### Response esperado (200): TariffPlanDto
+### Response error (404): { "error", "code": "NO_ACTIVE_TARIFF" o "NO_APPLICABLE_TARIFF" }

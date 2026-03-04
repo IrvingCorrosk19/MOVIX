@@ -1,0 +1,29 @@
+### POST /api/v1/trips
+### Descripción: Crear viaje. Requiere JWT + X-Tenant-Id + Idempotency-Key.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>, Idempotency-Key: <string>
+### Códigos: 200 OK (TripDto) | 400 IDEMPOTENCY_KEY_REQUIRED, etc.
+
+# @name createTrip
+POST {{BASE_URL}}/api/v1/trips
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+Idempotency-Key: trip-{{$guid}}
+Content-Type: application/json
+
+{
+  "pickupLatitude": 19.4326,
+  "pickupLongitude": -99.1332,
+  "dropoffLatitude": 19.4350,
+  "dropoffLongitude": -99.1400,
+  "pickupAddress": "Origen",
+  "dropoffAddress": "Destino",
+  "estimatedAmount": 12.50,
+  "currency": "USD"
+}
+
+### Response esperado (200):
+# {
+#   "id", "status", "pickupAddress", "dropoffAddress", "estimatedAmount", "finalAmount", "currency", "createdAtUtc"
+# }
+
+### Response error (400): IDEMPOTENCY_KEY_REQUIRED, TENANT_REQUIRED, etc.

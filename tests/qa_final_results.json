@@ -1,0 +1,19 @@
+﻿{
+    "PaymentBody":  "",
+    "CompleteBody":  "",
+    "PaymentStatus":  "N/A",
+    "AssignDriverBody":  "{\"id\":\"9aac4835-4b0a-4ecd-a510-4fd47752c0c0\",\"status\":\"Accepted\",\"pickupAddress\":\"Main Pickup\",\"dropoffAddress\":\"Main Dropoff\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:44:53.992947Z\"}",
+    "FinalTripBody":  "{\"id\":\"9aac4835-4b0a-4ecd-a510-4fd47752c0c0\",\"status\":\"Accepted\",\"passengerId\":\"9ab27d1d-315b-41e0-84a0-a94fd5277caf\",\"driverId\":\"adf2ab51-0bc7-4a64-9787-9fd455ae9897\",\"pickupAddress\":\"Main Pickup\",\"dropoffAddress\":\"Main Dropoff\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:44:53.992947Z\",\"updatedAtUtc\":\"2026-03-03T23:44:54.023913Z\"}",
+    "ConcR1HTTP":  409,
+    "Timestamp":  "2026-03-03 18:44:54",
+    "ConcR2HTTP":  409,
+    "ConcR1Body":  "{\"error\":\"No drivers available\",\"code\":\"NO_DRIVERS_AVAILABLE\"}",
+    "StuckCancelled":  2,
+    "AssignOK":  true,
+    "CreateTripBody":  "{\"id\":\"9aac4835-4b0a-4ecd-a510-4fd47752c0c0\",\"status\":\"Requested\",\"pickupAddress\":\"Main Pickup\",\"dropoffAddress\":\"Main Dropoff\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:44:53.9929479Z\"}",
+    "ConcResult":  "FAIL_BOTH_409",
+    "ConcR2Body":  "{\"error\":\"No drivers available\",\"code\":\"NO_DRIVERS_AVAILABLE\"}",
+    "TripId":  "9aac4835-4b0a-4ecd-a510-4fd47752c0c0",
+    "IdemResult":  "PASS - same id",
+    "FinalStatus":  "Accepted"
+}

@@ -1,0 +1,24 @@
+### PUT /api/v1/admin/tariffs/{id}
+### Descripción: Actualizar plan de tarifa. Requiere Admin/Support + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TariffPlanDto) | 404 TARIFF_NOT_FOUND | 403 cross-tenant | 400
+
+# @name updateTariff
+PUT {{BASE_URL}}/api/v1/admin/tariffs/{{TARIFF_ID}}
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+Content-Type: application/json
+
+{
+  "name": "Standard Updated",
+  "currency": "USD",
+  "baseFare": 5.50,
+  "pricePerKm": 1.60,
+  "pricePerMinute": 0.30,
+  "minimumFare": 9.00,
+  "effectiveFromUtc": null
+}
+
+### Response esperado (200): TariffPlanDto
+### Response error (404): { "error", "code": "TARIFF_NOT_FOUND" }
+### Response error (403): Forbid (TARIFF_CROSS_TENANT)

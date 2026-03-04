@@ -1,0 +1,13 @@
+### POST /api/v1/trips/{id}/assign-driver
+### Descripción: Asignar conductor al viaje. Requiere Admin o Support + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TripDto) | 404 | 409 NO_DRIVERS_AVAILABLE | 422 TRIP_INVALID_STATE, etc.
+
+# @name assignDriver
+POST {{BASE_URL}}/api/v1/trips/{{TRIP_ID}}/assign-driver
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+
+### Response esperado (200): TripDto
+### Response error (409): { "error", "code": "NO_DRIVERS_AVAILABLE" }
+### Response error (422): INVALID_TRANSITION, TRIP_INVALID_STATE, etc.

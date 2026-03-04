@@ -1,0 +1,14 @@
+### GET /api/v1/admin/tenants
+### Descripción: Listar todos los tenants. Requiere rol Admin o Support.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK (lista TenantDto) | 400 { "error" }
+
+# @name getTenants
+GET {{BASE_URL}}/api/v1/admin/tenants
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (200):
+# [ { "id", "name", "isActive", "createdAtUtc" }, ... ]
+
+### Response error (400):
+# { "error": "string" }

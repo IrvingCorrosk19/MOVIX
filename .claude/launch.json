@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Movix API",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Movix.Api/Movix.Api.csproj", "--launch-profile", "Movix.Api"],
+      "port": 55392
+    }
+  ]
+}

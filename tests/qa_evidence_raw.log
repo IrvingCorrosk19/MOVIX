@@ -1,0 +1,20 @@
+================================================================
+QA REAL EXECUTION - 2026-03-03 23:22:52 UTC
+Base URL: http://127.0.0.1:55392
+================================================================
+
+## INFRA CHECKS
+### Health
+[GET /health] HTTP 200
+  Body: {"status":"Healthy","checks":[{"name":"postgres","status":"Healthy","description":null,"error":null},{"name":"redis","status":"Healthy","description":null,"error":null},{"name":"outbox","status":"Healthy","description":"Outbox is healthy.","error":null},{"name":"postgis","status":"Healthy","description":"PostGIS is available.","error":null}]}
+  RESULT: FAIL
+### Ready
+[GET /ready] HTTP 200
+  Body: {"status":"Healthy","checks":[{"name":"postgres","status":"Healthy","description":null,"error":null},{"name":"redis","status":"Healthy","description":null,"error":null},{"name":"postgis","status":"Healthy","description":"PostGIS is available.","error":null}]}
+  RESULT: FAIL
+
+## LAYER 1: AUTH + INFRASTRUCTURE BASE
+### 1.1 Login Admin
+[Login Admin] HTTP 200
+  Body: {"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMzI0Zjg3OC0wMTgxLTQxMmEtOWI4OS1hODAxZjQ0ZjhhNDYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJhZG1pbkBtb3ZpeC5pbyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwianRpIjoiODIxNjRlOTYtMDhiMS00YWMzLWE5NzItZmJlZmJmOWM4ZWJhIiwidGVuYW50X2lkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIiwiZXhwIjoxNzcyNTgxMDczLCJpc3MiOiJtb3ZpeCIsImF1ZCI
+  RESULT: FAIL - cannot proceed without admin token

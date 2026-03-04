@@ -1,0 +1,15 @@
+### POST /api/v1/auth/logout
+### Descripción: Cerrar sesión. Opcional enviar refreshToken para invalidarlo.
+### Headers requeridos: ninguno (body opcional).
+### Códigos: 200 OK (siempre, sin body significativo)
+
+# @name logout
+POST {{BASE_URL}}/api/v1/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": null
+}
+
+### Response esperado (200):
+### (body vacío o mínimo)

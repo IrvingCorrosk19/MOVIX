@@ -53,6 +53,22 @@ public class TenantMiddleware
                 }
             }
         }
+        else
+        {
+            // BUG-005: Non-SuperAdmin — if X-Tenant-Id is sent, it must match JWT tenant_id claim.
+            var headerValue = context.Request.Headers[HeaderName].FirstOrDefault();
+            if (tenantId.HasValue && !string.IsNullOrWhiteSpace(headerValue))
+            {
+                if (Guid.TryParse(headerValue, out var headerTenantId) && headerTenantId != tenantId.Value)
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(
+                        new { error = "X-Tenant-Id does not match the tenant in your token.", code = "TENANT_MISMATCH" },
+                        context.RequestAborted);
+                    return;
+                }
+            }
+        }
 
         // ── 3. Validate tenant exists and is active ────────────────────────────
         if (tenantId.HasValue)

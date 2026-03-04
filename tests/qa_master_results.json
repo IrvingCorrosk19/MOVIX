@@ -1,0 +1,116 @@
+﻿{
+    "Timestamp":  "2026-03-03 18:27:21",
+    "BaseUrl":  "http://127.0.0.1:55392",
+    "TenantId":  "00000000-0000-0000-0000-000000000001",
+    "TripId":  "c4b9364c-c6e9-4c3c-a63e-45fbe28b2804",
+    "TariffId":  "c2099875-5b36-489b-819f-5730159b38be",
+    "PaymentId":  "N/A",
+    "FinalTripStatus":  "Requested",
+    "PaymentStatus":  "N/A",
+    "ConcurrencyResult":  "FAIL_BOTH_409",
+    "ConcR1HTTP":  409,
+    "ConcR2HTTP":  409,
+    "ConcR1Body":  {
+
+                   },
+    "ConcR2Body":  {
+
+                   },
+    "XTenancyHTTP":  200,
+    "XTenancyResult":  "FAIL",
+    "IdemTripResult":  "PASS",
+    "IdemPayResult":  "SKIP",
+    "TotalFails":  3,
+    "Fails":  [
+                  "2.2 Assign Driver FAIL (HTTP 409): ",
+                  "4.1 Multi-tenant FAIL: cross-tenant returned 200 (data leak risk)",
+                  "5.1 Concurrency FAIL: both returned 409, no trip assigned (RowVersion stale)"
+              ],
+    "Evidence":  [
+                     {
+                         "Label":  "GET /health",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"status\":\"Healthy\",\"checks\":[{\"name\":\"postgres\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"redis\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"outbox\",\"status\":\"Healthy\",\"description\":\"Outbox is healthy.\",\"error\":null},{\"name\":\"postgis\",\"status\":\"Healthy\",\"description\":\"PostGIS is available.\",\"error\":null}]}"
+                     },
+                     {
+                         "Label":  "GET /ready",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"status\":\"Healthy\",\"checks\":[{\"name\":\"postgres\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"redis\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"postgis\",\"status\":\"Healthy\",\"description\":\"PostGIS is available.\",\"error\":null}]}"
+                     },
+                     {
+                         "Label":  "Login Admin",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMzI0Zjg3OC0wMTgxLTQxMmEtOWI4OS1hODAxZjQ0ZjhhNDYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJhZG1pbkBtb3ZpeC5pbyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwianRpIjoiMWMzYWMwN2EtYzkxOC00ODE5LThjODUtMTVkNjdlMjhhNzRiIiwidGVuYW50X2lkIjo"
+                     },
+                     {
+                         "Label":  "Login Driver",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYzRiMTU2ZS05NTc3LTQ5ZmItYmJkYy1mYmI0ZjYwOWYxY2QiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJkcml2ZXJAbW92aXguaW8iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJEcml2ZXIiLCJqdGkiOiI2NzZiYWFiOS1kMWQ3LTRlMDUtOGY5Ni02MTNkNzRlNWMwOTciLCJ0ZW5hbnRfaWQ"
+                     },
+                     {
+                         "Label":  "Login Passenger",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MzZhNmVhZi1kYTk2LTQ5NzItOWMxZC0xMTY5NTU2NTlmM2MiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJwYXNzZW5nZXItcWEtMTc3MjU4MDQ0MUBtb3ZpeC5pbyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlBhc3NlbmdlciIsImp0aSI6ImFmY2Y1Mjc3LTQ2ZjgtNGFmZS05NjJkLWQwZDN"
+                     },
+                     {
+                         "Label":  "Create Tariff",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"c2099875-5b36-489b-819f-5730159b38be\",\"tenantId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"QA Tariff 1772580441\",\"currency\":\"USD\",\"baseFare\":2.50,\"pricePerKm\":1.20,\"pricePerMinute\":0.25,\"minimumFare\":5.00,\"isActive\":false,\"priority\":3541,\"effectiveFromUtc\":\"2025-01-01T00:00:00Z\",\"effectiveUntilUtc\":null,\"createdAtUtc\":\"2026-03-03T23:27:23.0744691Z\"}"
+                     },
+                     {
+                         "Label":  "Activate Tariff",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"c2099875-5b36-489b-819f-5730159b38be\",\"tenantId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"QA Tariff 1772580441\",\"currency\":\"USD\",\"baseFare\":2.5000,\"pricePerKm\":1.2000,\"pricePerMinute\":0.2500,\"minimumFare\":5.0000,\"isActive\":true,\"priority\":3541,\"effectiveFromUtc\":\"2025-01-01T00:00:00Z\",\"effectiveUntilUtc\":null,\"createdAtUtc\":\"2026-03-03T23:27:23.074469Z\"}"
+                     },
+                     {
+                         "Label":  "Fare Quote",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"fareAmount\":5.00,\"currency\":\"USD\",\"tariffPlanId\":\"acbc4494-fb25-4343-b39d-60c179172083\"}"
+                     },
+                     {
+                         "Label":  "Create Trip",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"c4b9364c-c6e9-4c3c-a63e-45fbe28b2804\",\"status\":\"Requested\",\"pickupAddress\":\"Origen QA\",\"dropoffAddress\":\"Destino QA\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:27:23.3375914Z\"}"
+                     },
+                     {
+                         "Label":  "GET Trip Final",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"c4b9364c-c6e9-4c3c-a63e-45fbe28b2804\",\"status\":\"Requested\",\"passengerId\":\"736a6eaf-da96-4972-9c1d-116955659f3c\",\"driverId\":null,\"pickupAddress\":\"Origen QA\",\"dropoffAddress\":\"Destino QA\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:27:23.337591Z\",\"updatedAtUtc\":\"2026-03-03T23:27:23.337591Z\"}"
+                     },
+                     {
+                         "Label":  "Duplicate Trip",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"c4b9364c-c6e9-4c3c-a63e-45fbe28b2804\",\"status\":\"Requested\",\"pickupAddress\":\"Origen QA\",\"dropoffAddress\":\"Destino QA\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:27:23.337591Z\"}"
+                     },
+                     {
+                         "Label":  "Cross-Tenant GET Trip",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"c4b9364c-c6e9-4c3c-a63e-45fbe28b2804\",\"status\":\"Requested\",\"passengerId\":\"736a6eaf-da96-4972-9c1d-116955659f3c\",\"driverId\":null,\"pickupAddress\":\"Origen QA\",\"dropoffAddress\":\"Destino QA\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:27:23.337591Z\",\"updatedAtUtc\":\"2026-03-03T23:27:23.337591Z\"}"
+                     },
+                     {
+                         "Label":  "Create Concurrency Trip",
+                         "HTTP":  200,
+                         "OK":  true,
+                         "Body":  "{\"id\":\"690c6960-0864-4049-bb0a-a8b01e17a405\",\"status\":\"Requested\",\"pickupAddress\":\"Concurrency A\",\"dropoffAddress\":\"Concurrency B\",\"estimatedAmount\":10.00,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:27:23.7129912Z\"}"
+                     }
+                 ],
+    "HealthBody":  "{\"status\":\"Healthy\",\"checks\":[{\"name\":\"postgres\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"redis\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"outbox\",\"status\":\"Healthy\",\"description\":\"Outbox is healthy.\",\"error\":null},{\"name\":\"postgis\",\"status\":\"Healthy\",\"description\":\"PostGIS is available.\",\"error\":null}]}",
+    "ReadyBody":  "{\"status\":\"Healthy\",\"checks\":[{\"name\":\"postgres\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"redis\",\"status\":\"Healthy\",\"description\":null,\"error\":null},{\"name\":\"postgis\",\"status\":\"Healthy\",\"description\":\"PostGIS is available.\",\"error\":null}]}",
+    "AssignDriverBody":  null,
+    "FinalTripBody":  "{\"id\":\"c4b9364c-c6e9-4c3c-a63e-45fbe28b2804\",\"status\":\"Requested\",\"passengerId\":\"736a6eaf-da96-4972-9c1d-116955659f3c\",\"driverId\":null,\"pickupAddress\":\"Origen QA\",\"dropoffAddress\":\"Destino QA\",\"estimatedAmount\":12.50,\"finalAmount\":null,\"currency\":\"USD\",\"createdAtUtc\":\"2026-03-03T23:27:23.337591Z\",\"updatedAtUtc\":\"2026-03-03T23:27:23.337591Z\"}",
+    "PaymentBody":  "",
+    "FareQuoteBody":  "{\"fareAmount\":5.00,\"currency\":\"USD\",\"tariffPlanId\":\"acbc4494-fb25-4343-b39d-60c179172083\"}",
+    "ActivateTariffBody":  "{\"id\":\"c2099875-5b36-489b-819f-5730159b38be\",\"tenantId\":\"00000000-0000-0000-0000-000000000001\",\"name\":\"QA Tariff 1772580441\",\"currency\":\"USD\",\"baseFare\":2.5000,\"pricePerKm\":1.2000,\"pricePerMinute\":0.2500,\"minimumFare\":5.0000,\"isActive\":true,\"priority\":3541,\"effectiveFromUtc\":\"2025-01-01T00:00:00Z\",\"effectiveUntilUtc\":null,\"createdAtUtc\":\"2026-03-03T23:27:23.074469Z\"}"
+}

@@ -1,0 +1,18 @@
+### POST /api/v1/drivers/status
+### Descripción: Actualizar estado del conductor (Available, Busy, Offline, etc.). Requiere Driver o Admin.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK | 400 { "error", "code" }
+
+# @name driverStatus
+POST {{BASE_URL}}/api/v1/drivers/status
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "status": "Available"
+}
+
+### Response esperado (200): (sin body o vacío)
+### Response error (400): { "error", "code" }
+
+### Valores status: Available, Busy, Offline (según enum DriverStatus)

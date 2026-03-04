@@ -1,0 +1,48 @@
+﻿================================================================================
+E2E RIDE LIFECYCLE - QA REPORT (Post BUG-001, BUG-002, BUG-003)
+================================================================================
+Base URL: http://127.0.0.1:55392
+Executed: 2026-03-03 06:08:57
+
+STEP RESULTS
+--------------------------------------------------------------------------------
+1.Login Admin: HTTP 200 [OK]
+2.Create Tenant: HTTP 200 [OK]
+2b.Register Passenger: HTTP 202 [OK]
+3.Login Driver: HTTP 200 [OK]
+4.Login Passenger: HTTP 200 [OK]
+5.Driver Onboarding: HTTP 400 [FAIL]
+6.Driver Status Online: HTTP 200 [OK]
+7.Driver Location: HTTP 200 [OK]
+8.Create Tariff: HTTP 200 [OK]
+9.Activate Tariff: HTTP 400 [FAIL]
+10.Create Trip: HTTP 200 [OK]
+11.Assign Driver: HTTP 409 [FAIL]
+12.Driver Arrive: HTTP 422 [FAIL]
+13.Driver Start: HTTP 422 [FAIL]
+14.Driver Complete: HTTP 422 [FAIL]
+GET /trips (final): HTTP 200 [OK]
+15.Create Payment: HTTP 400 [FAIL]
+VALIDATIONS
+--------------------------------------------------------------------------------
+- 409 Concurrency: FAIL - present
+- 403 Incorrect for driver: OK
+- 500 errors: OK - none
+- Driver Onboarding (200): FAIL (400)
+- Trip status after Create: Requested = OK
+- Trip status after Assign: Accepted = N/A
+- Trip status after Arrive: DriverArrived = N/A
+- Trip status after Start: InProgress = N/A
+- Trip status after Complete: Completed = N/A
+- GET /trips/{id} reflects state: OK
+- Payment status (Pending/Simulation): N/A
+
+FINAL STATE
+--------------------------------------------------------------------------------
+Trip Id: b60439fa-9bbc-4f9a-b23f-b0306781ac39
+Trip Status: Requested
+Payment Status: 
+Driver Id (onboarding): 
+================================================================================
+Issues detected. Review step results above.
+================================================================================

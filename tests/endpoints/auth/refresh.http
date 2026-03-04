@@ -1,0 +1,26 @@
+### POST /api/v1/auth/refresh
+### Descripción: Refrescar token usando refreshToken. Devuelve nuevo accessToken y refreshToken.
+### Headers requeridos: ninguno.
+### Códigos: 200 OK (LoginResponse) | 401 { "error", "code" }
+
+# @name refresh
+POST {{BASE_URL}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{REFRESH_TOKEN}}"
+}
+
+### Response esperado (200):
+# {
+#   "accessToken": "eyJ...",
+#   "refreshToken": "string",
+#   "accessTokenExpiresAtUtc": "2025-03-02T12:00:00Z",
+#   "expiresInSeconds": 3600
+# }
+
+### Response error (401):
+# {
+#   "error": "string",
+#   "code": "string"
+# }

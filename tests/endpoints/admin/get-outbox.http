@@ -1,0 +1,16 @@
+### GET /api/v1/admin/ops/outbox
+### Descripción: Listar mensajes outbox. Requiere rol Admin o Support.
+### Headers requeridos: Authorization: Bearer <token>
+### Query: processed?, deadletter?, from?, to?, type?
+### Códigos: 200 OK (lista OutboxOpsDto)
+
+# @name getOutbox
+GET {{BASE_URL}}/api/v1/admin/ops/outbox
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (200):
+# [
+#   { "id", "eventId", "type", "correlationId", "createdAtUtc", "processedAtUtc", "attemptCount", "isDeadLetter" }
+# ]
+
+### Response error: 401 si no autenticado

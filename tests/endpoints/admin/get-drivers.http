@@ -1,0 +1,20 @@
+### GET /api/v1/admin/drivers
+### Descripción: Listar conductores. Requiere rol Admin o Support.
+### Headers requeridos: Authorization: Bearer <token>
+### Query: page (default 1), pageSize (default 20)
+### Códigos: 200 OK (AdminDriversResponse) | 400 { "error" }
+
+# @name getAdminDrivers
+GET {{BASE_URL}}/api/v1/admin/drivers?page=1&pageSize=20
+Authorization: Bearer {{ACCESS_TOKEN}}
+
+### Response esperado (200):
+# {
+#   "drivers": [
+#     { "id", "userId", "status", "isVerified", "createdAtUtc" }
+#   ],
+#   "totalCount": 0
+# }
+
+### Response error (400):
+# { "error": "string" }

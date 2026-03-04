@@ -1,0 +1,12 @@
+### POST /api/v1/trips/{id}/arrive
+### Descripción: Conductor indica que llegó al punto de recogida. Requiere Driver o Admin + X-Tenant-Id.
+### Headers requeridos: Authorization: Bearer <token>, X-Tenant-Id: <guid>
+### Códigos: 200 OK (TripDto) | 403 | 404 | 422
+
+# @name arriveTrip
+POST {{BASE_URL}}/api/v1/trips/{{TRIP_ID}}/arrive
+Authorization: Bearer {{ACCESS_TOKEN}}
+X-Tenant-Id: {{TENANT_ID}}
+
+### Response esperado (200): TripDto
+### Response error (422): INVALID_TRANSITION, etc.

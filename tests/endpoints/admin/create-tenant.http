@@ -1,0 +1,27 @@
+### POST /api/v1/admin/tenants
+### Descripción: Crear un nuevo tenant. Requiere rol Admin o Support.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK (TenantDto) | 400 { "error", "code" }
+
+# @name createTenant
+POST {{BASE_URL}}/api/v1/admin/tenants
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "name": "Mi Tenant"
+}
+
+### Response esperado (200):
+# {
+#   "id": "guid",
+#   "name": "string",
+#   "isActive": true,
+#   "createdAtUtc": "2025-03-02T12:00:00Z"
+# }
+
+### Response error (400):
+# {
+#   "error": "string",
+#   "code": "string"
+# }

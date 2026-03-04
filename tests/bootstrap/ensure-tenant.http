@@ -1,0 +1,65 @@
+###############################################################################
+# Bootstrap: Asegurar tenant 00000000-0000-0000-0000-000000000001
+# Ejecutar ANTES de pruebas de POST /api/v1/auth/register
+# Orden: 1) Login → 2) GET tenants → 3) POST tenant (solo si no existe)
+###############################################################################
+
+@baseUrl = http://127.0.0.1:55392
+@adminEmail =
+@adminPassword =
+@tenantId = 00000000-0000-0000-0000-000000000001
+
+###############################################################################
+# PASO 1 — Login como admin
+###############################################################################
+# Esperado: 200. Body: accessToken, refreshToken, accessTokenExpiresAtUtc, expiresInSeconds.
+# El token se usa en PASO 2 y PASO 3 como {{login.response.body.accessToken}}.
+
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###############################################################################
+# PASO 2 — GET tenants
+###############################################################################
+# Esperado: 200. Body: array de { id, name, isActive, createdAtUtc }.
+# Comprobar si {{tenantId}} está en la lista. Si no está, ejecutar PASO 3.
+
+# @name getTenants
+GET {{baseUrl}}/api/v1/admin/tenants
+Authorization: Bearer {{login.response.body.accessToken}}
+
+###############################################################################
+# PASO 3 — Crear tenant (solo si no existe)
+###############################################################################
+# Ejecutar únicamente si en PASO 2 el {{tenantId}} no apareció en la respuesta.
+# Esperado: 200. Body: { id, name, isActive, createdAtUtc }.
+# Si el tenant ya existe, no crear duplicado (id será distinto).
+
+# @name createTenant
+POST {{baseUrl}}/api/v1/admin/tenants
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Movix Dev Tenant"
+}
+
+###############################################################################
+# VALIDACIONES ESPERADAS
+###############################################################################
+# Login:           200 → token válido para Admin
+# GET tenants:     200 → lista de tenants
+# POST tenant:     200 → tenant creado (solo si se ejecutó por no existir)
+# Si tenant ya existe → no ejecutar POST; no crear duplicado.
+#
+# RESULTADOS POSIBLES
+# ✔ Tenant exists   — {{tenantId}} está en GET tenants; no hace falta POST
+# ✔ Tenant created  — POST devolvió 200; tenant creado
+# ✖ Login failed    — Login distinto de 200; revisar adminEmail, adminPassword
+# ✖ Admin role missing — 403 en GET o POST; usuario sin rol Admin/Support

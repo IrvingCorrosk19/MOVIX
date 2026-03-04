@@ -62,6 +62,9 @@ public class DriverStatusCommandHandler : IRequestHandler<DriverStatusCommand, R
         {
             availability.IsOnline = request.Status == Movix.Domain.Enums.DriverStatus.Online;
             availability.UpdatedAtUtc = now;
+            // BUG-004: When driver goes Online, clear any stale trip assignment so they become available again.
+            if (request.Status == Movix.Domain.Enums.DriverStatus.Online)
+                availability.CurrentTripId = null;
         }
 
         try

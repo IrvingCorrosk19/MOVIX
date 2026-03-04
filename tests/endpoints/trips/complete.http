@@ -1,0 +1,17 @@
+### POST /api/v1/trips/{id}/complete
+### Descripción: Completar viaje. Requiere Driver o Admin. Opcional: distanceKm, durationMinutes.
+### Headers requeridos: Authorization: Bearer <token>
+### Códigos: 200 OK (TripDto) | 403 | 404 | 422
+
+# @name completeTrip
+POST {{BASE_URL}}/api/v1/trips/{{TRIP_ID}}/complete
+Authorization: Bearer {{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "distanceKm": 5.2,
+  "durationMinutes": 18
+}
+
+### Response esperado (200): TripDto
+### Response error (422): INVALID_TRANSITION, etc.
