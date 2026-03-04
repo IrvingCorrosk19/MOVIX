@@ -125,14 +125,15 @@ public class TripsController : ControllerBase
 
     private IActionResult MapError(Result result) => result.ErrorCode switch
     {
-        "FORBIDDEN"             => StatusCode(403, new { error = result.Error, code = result.ErrorCode }),
-        "TRIP_NOT_FOUND"        => NotFound(new { error = result.Error, code = result.ErrorCode }),
-        "TRIP_INVALID_STATE"    => BadRequest(new { error = result.Error, code = result.ErrorCode }),
-        "NO_DRIVERS_AVAILABLE"  => Conflict(new { error = result.Error, code = result.ErrorCode }),
-        "INVALID_TRANSITION"    => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
-        "DRIVER_NOT_ASSIGNED"   => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
-        "CONFLICT"              => Conflict(new { error = result.Error, code = result.ErrorCode }),
-        _                       => BadRequest(new { error = result.Error, code = result.ErrorCode })
+        "FORBIDDEN"               => StatusCode(403, new { error = result.Error, code = result.ErrorCode }),
+        "TRIP_NOT_FOUND"          => NotFound(new { error = result.Error, code = result.ErrorCode }),
+        "TRIP_INVALID_STATE"      => BadRequest(new { error = result.Error, code = result.ErrorCode }),
+        "NO_DRIVERS_AVAILABLE"    => Conflict(new { error = result.Error, code = result.ErrorCode }),
+        "CONCURRENCY_CONFLICT"    => Conflict(new { error = result.Error, code = result.ErrorCode }),
+        "INVALID_TRANSITION"      => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
+        "DRIVER_NOT_ASSIGNED"     => UnprocessableEntity(new { error = result.Error, code = result.ErrorCode }),
+        "CONFLICT"                => Conflict(new { error = result.Error, code = result.ErrorCode }),
+        _                         => BadRequest(new { error = result.Error, code = result.ErrorCode })
     };
 }
 

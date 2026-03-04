@@ -1,0 +1,199 @@
+###############################################################################
+# Assign-Driver Stability — HTTP Test Scenarios
+###############################################################################
+#
+# Purpose: Reproducible HTTP scenarios to validate POST /api/v1/trips/{id}/assign-driver
+#          against the stability rules in docs/ASSIGN_DRIVER_CONCURRENCY_FLOW.md.
+#
+# What each scenario validates:
+#   1 — Normal flow: one trip, one assign → 200, trip Accepted, driver reserved.
+#   2 — Same trip, two assigns: only one may succeed → 200 + 400 TRIP_INVALID_STATE.
+#   3 — Two trips, same driver: one wins, one hits RowVersion conflict → 200 + 409 CONCURRENCY_CONFLICT.
+#   4 — No drivers online: assign must fail with NO_DRIVERS_AVAILABLE → 409.
+#   5 — Wrong tenant header vs JWT: middleware must reject → 403 TENANT_MISMATCH.
+#
+# Expected responses and relation to concurrency doc:
+#   - 200: Success; trip status = Accepted; DriverAvailability.CurrentTripId = tripId.
+#   - 400 TRIP_INVALID_STATE: Second assign on same trip (state check before SaveChanges).
+#   - 409 CONCURRENCY_CONFLICT: Second assign on different trip, same driver (DbUpdateConcurrencyException).
+#   - 409 NO_DRIVERS_AVAILABLE: No available driver (GetFirstAvailableAsync returned null).
+#   - 403 TENANT_MISMATCH: X-Tenant-Id != JWT tenant_id claim.
+#
+# Compatible with: VSCode REST Client, JetBrains HTTP Client.
+# Run order: Set variables (or use env file); run Scenario 1 first to obtain tokens/tripId.
+###############################################################################
+
+@baseUrl = http://127.0.0.1:55392
+@tenantId = 00000000-0000-0000-0000-000000000001
+@adminToken = <paste after login>
+@driverToken = <paste after driver login>
+@tripId = <paste after create trip>
+@tripIdB = <paste after create second trip>
+
+###############################################################################
+# SCENARIO 1 — Normal Assign Driver
+###############################################################################
+# Steps: 1) Login admin  2) Ensure driver online  3) Create trip  4) Assign driver
+# Expected: HTTP 200, trip status = Accepted, DriverAvailability.CurrentTripId = tripId
+###############################################################################
+
+### 1.1 — Login admin
+# @name loginAdmin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@movix.io",
+  "password": "Admin@1234!"
+}
+
+### 1.2 — Login driver (then set driver online)
+# @name loginDriver
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "driver@movix.io",
+  "password": "Driver@1234!"
+}
+
+### 1.3 — Driver online (use token from 1.2)
+POST {{baseUrl}}/api/v1/drivers/status
+Authorization: Bearer {{driverToken}}
+X-Tenant-Id: {{tenantId}}
+Content-Type: application/json
+
+{
+  "status": 1
+}
+
+### 1.4 — Create trip (use token from 1.1; copy id to @tripId)
+# @name createTrip
+POST {{baseUrl}}/api/v1/trips
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+Idempotency-Key: stability-sc1-{{$timestamp}}
+Content-Type: application/json
+
+{
+  "pickupLatitude": 19.4326,
+  "pickupLongitude": -99.1332,
+  "dropoffLatitude": 19.4350,
+  "dropoffLongitude": -99.1400,
+  "pickupAddress": "Stability Pickup",
+  "dropoffAddress": "Stability Dropoff",
+  "estimatedAmount": 12.50,
+  "currency": "USD"
+}
+
+### 1.5 — Assign driver (normal flow)
+# Expected: 200, body.status = "Accepted"
+POST {{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+
+###############################################################################
+# SCENARIO 2 — Same Trip Concurrent Assign
+###############################################################################
+# Simulate two assign-driver requests for the SAME trip.
+# Run Request 1 and Request 2 in parallel (e.g. two tabs or script).
+# Expected: Request 1 → 200 | Request 2 → 400, body.code = "TRIP_INVALID_STATE"
+# Explanation: Only one assignment allowed per trip; second fails state check.
+###############################################################################
+
+### 2.1 — Request 1 (same trip)
+POST {{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+
+### 2.2 — Request 2 (same trip, run concurrently with 2.1)
+# Expected: 400, body: { "error": "Trip is not in Requested state", "code": "TRIP_INVALID_STATE" }
+POST {{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+
+###############################################################################
+# SCENARIO 3 — Two Trips Competing For Same Driver
+###############################################################################
+# Create two trips (both Requested). Send two assign-driver in parallel (trip A, trip B).
+# Both may select the same driver; one SaveChanges wins, the other hits RowVersion conflict.
+# Expected: Request 1 → 200 | Request 2 → 409, body.code = "CONCURRENCY_CONFLICT"
+# Explanation: DriverAvailability RowVersion conflict (DbUpdateConcurrencyException).
+###############################################################################
+
+### 3.1 — Create trip A (for concurrent assign)
+# @name createTripA
+POST {{baseUrl}}/api/v1/trips
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+Idempotency-Key: stability-sc3a-{{$timestamp}}
+Content-Type: application/json
+
+{
+  "pickupLatitude": 19.4329,
+  "pickupLongitude": -99.1335,
+  "dropoffLatitude": 19.4353,
+  "dropoffLongitude": -99.1403,
+  "pickupAddress": "Concurrent A",
+  "dropoffAddress": "Concurrent A Drop",
+  "estimatedAmount": 10.00,
+  "currency": "USD"
+}
+
+### 3.2 — Create trip B (for concurrent assign)
+# @name createTripB
+POST {{baseUrl}}/api/v1/trips
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+Idempotency-Key: stability-sc3b-{{$timestamp}}
+Content-Type: application/json
+
+{
+  "pickupLatitude": 19.4330,
+  "pickupLongitude": -99.1336,
+  "dropoffLatitude": 19.4354,
+  "dropoffLongitude": -99.1404,
+  "pickupAddress": "Concurrent B",
+  "dropoffAddress": "Concurrent B Drop",
+  "estimatedAmount": 11.00,
+  "currency": "USD"
+}
+
+### 3.3 — Request 1 (trip A) — run in parallel with 3.4
+POST {{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+
+### 3.4 — Request 2 (trip B) — run in parallel with 3.3
+# Expected: 409, body: { "error": "Concurrent modification; retry", "code": "CONCURRENCY_CONFLICT" }
+POST {{baseUrl}}/api/v1/trips/{{tripIdB}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+
+###############################################################################
+# SCENARIO 4 — No Drivers Available
+###############################################################################
+# Ensure no drivers are online (e.g. call driver status = 0 or use fresh tenant with no driver).
+# Then call assign-driver.
+# Expected: HTTP 409, body.code = "NO_DRIVERS_AVAILABLE"
+###############################################################################
+
+### 4.1 — Assign driver when no driver is online (use a trip created with admin; ensure driver offline)
+# Expected: 409, body: { "error": "No drivers available", "code": "NO_DRIVERS_AVAILABLE" }
+POST {{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: {{tenantId}}
+
+###############################################################################
+# SCENARIO 5 — Multi-Tenant Isolation
+###############################################################################
+# Call assign-driver with X-Tenant-Id different from the tenant in the JWT (admin token).
+# Expected: HTTP 403, body.code = "TENANT_MISMATCH"
+###############################################################################
+
+### 5.1 — Assign driver with wrong tenant header
+# Use a valid admin token (tenant 00000000-0000-0000-0000-000000000001) but send X-Tenant-Id: wrong tenant.
+# Expected: 403, body: { "error": "X-Tenant-Id does not match the tenant in your token.", "code": "TENANT_MISMATCH" }
+POST {{baseUrl}}/api/v1/trips/{{tripId}}/assign-driver
+Authorization: Bearer {{adminToken}}
+X-Tenant-Id: 00000000-0000-0000-0000-000000000099
