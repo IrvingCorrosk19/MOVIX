@@ -1,0 +1,234 @@
+PLATAFORMA DE MOVILIDAD — PLAN MAESTRO DE DESARROLLO Y CONTROL DE FALLAS
+
+Este documento define la estrategia completa para el desarrollo del
+sistema de movilidad (tipo Uber) que estamos construyendo.
+El objetivo es guiar el desarrollo, detectar fallas tempranas, y tener
+planes de contingencia claros.
+
+El documento está pensado para ser iterativo. Se irá actualizando a
+medida que el proyecto avance.
+
+------------------------------------------------------------------------
+
+SECCIÓN 1 — PRINCIPIOS DE DESARROLLO
+
+1.  Desarrollo orientado a APIs (API First)
+2.  Validación continua con cliente real (Flutter)
+3.  Testing concurrente para operaciones críticas
+4.  Observabilidad completa del sistema
+5.  Arquitectura tolerante a fallas
+6.  Registro completo de auditoría
+7.  Despliegue controlado por etapas
+
+El backend es la fuente de verdad del sistema.
+
+------------------------------------------------------------------------
+
+SECCIÓN 2 — ARQUITECTURA GENERAL
+
+Capas del sistema:
+
+Cliente móvil Flutter App
+
+API Gateway ASP.NET API
+
+Dominio Servicios de negocio
+
+Persistencia PostgreSQL / EF Core
+
+Infraestructura Logs Outbox Workers Monitoring
+
+------------------------------------------------------------------------
+
+SECCIÓN 3 — FASES DE DESARROLLO
+
+FASE 1 — ESTABILIDAD DEL BACKEND
+
+Objetivo: Garantizar que los endpoints funcionen correctamente y
+soporten concurrencia.
+
+Validaciones:
+
+• Creación de viaje • Asignación de conductor • Transición de estados
+del viaje • Control de concurrencia • Idempotencia de endpoints
+
+Pruebas:
+
+• Stress test • Concurrency test • Consistencia en base de datos
+
+Plan de contingencia:
+
+Si ocurre conflicto de concurrencia: - devolver HTTP 409 - reintentar
+operación desde cliente
+
+Si ocurre error de estado: - devolver HTTP 400 - registrar evento en
+logs
+
+------------------------------------------------------------------------
+
+FASE 2 — INTEGRACIÓN CON CLIENTE FLUTTER
+
+Objetivo: Consumir APIs desde un cliente real para detectar
+inconsistencias.
+
+Validaciones:
+
+• estructura de respuestas • latencia de endpoints • manejo de errores •
+consistencia de modelos
+
+Posibles fallas:
+
+Campos inconsistentes Null inesperados Estados incompletos Errores de
+serialización
+
+Plan de contingencia:
+
+Establecer contrato estándar de respuesta:
+
+success data error
+
+Esto evita romper el cliente.
+
+------------------------------------------------------------------------
+
+FASE 3 — CICLO DE VIDA DEL VIAJE
+
+Estados del viaje:
+
+CREATED SEARCHING_DRIVER DRIVER_ASSIGNED DRIVER_ARRIVED TRIP_STARTED
+TRIP_COMPLETED TRIP_CANCELLED
+
+Validaciones:
+
+• solo un conductor por viaje • solo un viaje activo por conductor •
+transición correcta de estados
+
+Plan de contingencia:
+
+Si el conductor ya tiene viaje activo:
+
+rechazar operación registrar evento
+
+------------------------------------------------------------------------
+
+SECCIÓN 4 — CONTROL DE CONCURRENCIA
+
+Operación crítica:
+
+assign-driver
+
+Riesgo:
+
+Dos conductores aceptando el mismo viaje.
+
+Solución:
+
+Optimistic concurrency RowVersion
+
+Resultado esperado:
+
+1 request exitoso resto conflicto 409
+
+------------------------------------------------------------------------
+
+SECCIÓN 5 — DETECCIÓN TEMPRANA DE FALLAS
+
+Estrategia:
+
+1 API tests 2 Flutter integration tests 3 Stress tests 4 Database
+consistency checks
+
+Alertas críticas:
+
+• duplicación de conductor • múltiples viajes activos • inconsistencias
+en estados • errores HTTP 500
+
+Plan de contingencia:
+
+Activar logs de diagnóstico detener despliegue analizar transacciones
+
+------------------------------------------------------------------------
+
+SECCIÓN 6 — MONITOREO DEL SISTEMA
+
+Logs necesarios:
+
+• requests API • cambios de estado de viaje • conflictos de concurrencia
+• errores internos
+
+Métricas importantes:
+
+• tiempo de respuesta • tasa de errores • conflictos de concurrencia •
+viajes activos
+
+------------------------------------------------------------------------
+
+SECCIÓN 7 — ESTRATEGIA DE PRUEBAS
+
+Tipos de pruebas:
+
+Unit tests Integration tests Concurrency tests Stress tests End-to-end
+tests
+
+Flujo recomendado:
+
+Crear endpoint Probar manual Probar automatizado Probar desde Flutter
+
+------------------------------------------------------------------------
+
+SECCIÓN 8 — CONTROL DE CAMBIOS EN APIs
+
+Nunca romper contratos existentes.
+
+Si cambia estructura:
+
+crear nueva versión:
+
+/api/v2/
+
+Mantener compatibilidad con versiones anteriores.
+
+------------------------------------------------------------------------
+
+SECCIÓN 9 — GESTIÓN DE ERRORES
+
+Errores estándar:
+
+400 Bad Request 401 Unauthorized 404 Not Found 409 Conflict 500 Internal
+Error
+
+Formato de error recomendado:
+
+success = false error.code error.message
+
+------------------------------------------------------------------------
+
+SECCIÓN 10 — CONTINUIDAD OPERATIVA
+
+Escenarios críticos:
+
+Base de datos caída Driver assignment inconsistente Errores masivos en
+API
+
+Plan de contingencia:
+
+• activar modo mantenimiento • detener asignaciones • revisar logs •
+validar consistencia DB
+
+------------------------------------------------------------------------
+
+SECCIÓN 11 — CRECIMIENTO FUTURO
+
+Capacidades futuras:
+
+matching inteligente de conductores optimización de rutas predicción de
+demanda pricing dinámico
+
+------------------------------------------------------------------------
+
+SECCIÓN 12 — DOCUMENTACIÓN VIVA
+
+Este documento debe actualizarse cuando:
+
+se agregue un endpoint cambie un flujo crítico se detecte una falla se
+agregue infraestructura
